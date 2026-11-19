@@ -1,0 +1,537 @@
+/* Uses the shared .page layout from styles.scss */
+
+/* ---- Notices (import result / errors) ------------------------------------ */
+
+.advertisers__notice {
+    @apply flex items-start gap-3 border px-4 py-3 text-sm text-content-primary;
+
+    i {
+        @apply mt-0.5;
+    }
+
+    span {
+        @apply min-w-0 flex-1;
+    }
+
+    &--success {
+        @apply border-status-good;
+        background-color: color-mix(in srgb, var(--app-status-good) 10%, transparent);
+
+        i {
+            @apply text-status-good;
+        }
+    }
+
+    &--error {
+        @apply border-status-crit;
+        background-color: color-mix(in srgb, var(--app-status-crit) 10%, transparent);
+
+        i {
+            @apply text-status-crit;
+        }
+    }
+}
+
+.advertisers__notice-dismiss {
+    @apply shrink-0 cursor-pointer border-0 bg-transparent px-1 text-lg leading-none text-content-secondary;
+
+    &:hover {
+        @apply text-content-primary;
+    }
+}
+
+/* ---- Import preview ------------------------------------------------------ */
+
+.import {
+    @apply flex flex-col gap-4 border border-surface-border bg-surface-raised p-5;
+    border-top: 3px solid var(--app-brand);
+
+    &__header {
+        @apply flex flex-wrap items-start justify-between gap-4;
+    }
+
+    &__title {
+        @apply text-lg font-bold text-content-primary;
+    }
+
+    &__file {
+        @apply mt-0.5 break-all text-sm text-content-muted;
+    }
+
+    &__counts {
+        @apply flex flex-wrap gap-2;
+    }
+
+    /* Count buttons that filter the preview rows; the active one is marigold */
+    &__count {
+        @apply cursor-pointer border border-surface-border bg-transparent px-3 py-1 text-sm text-content-secondary transition-colors;
+
+        strong {
+            @apply font-bold tabular-nums text-content-primary;
+        }
+
+        &:hover {
+            @apply border-brand text-content-primary;
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--app-brand);
+            outline-offset: 2px;
+        }
+
+        &--active {
+            @apply border-brand bg-brand-soft text-content-primary;
+        }
+
+        &--clear {
+            @apply border-transparent text-brand underline underline-offset-2;
+
+            &:hover {
+                @apply border-transparent;
+            }
+        }
+    }
+
+    &__hint {
+        @apply text-sm text-content-muted;
+    }
+
+    &__actions {
+        @apply flex flex-wrap justify-end gap-3;
+    }
+}
+
+/* Row status pills */
+.status {
+    @apply inline-block whitespace-nowrap border px-2 py-0.5 text-micro font-semibold uppercase tracking-wide !font-mono;
+
+    &--new {
+        @apply border-brand bg-brand-soft text-brand;
+    }
+
+    &--duplicate {
+        @apply border-surface-border text-content-muted;
+    }
+
+    &--invalid {
+        @apply border-status-crit text-status-crit;
+    }
+
+    &__reason {
+        @apply mt-1 block text-xs text-content-muted;
+    }
+}
+
+/* ---- Tables -------------------------------------------------------------- */
+
+.advertisers {
+    @apply border border-surface-border bg-surface-raised;
+
+    &__state {
+        @apply flex flex-col items-center gap-2 px-6 py-14 text-center text-sm text-content-muted;
+
+        p {
+            @apply max-w-lg;
+        }
+
+        &--error {
+            @apply text-status-crit;
+        }
+    }
+
+    &__state-icon {
+        @apply text-3xl text-brand;
+    }
+
+    &__state-title {
+        @apply text-base font-semibold text-content-primary;
+    }
+}
+
+.table-scroll {
+    @apply max-h-[70vh] overflow-auto;
+
+    &--preview {
+        @apply max-h-[24rem] border border-surface-border;
+    }
+}
+
+.data-table {
+    @apply w-full border-collapse text-sm;
+
+    th {
+        @apply sticky top-0 z-[1] whitespace-nowrap border-b border-surface-border bg-surface-raised px-3 py-2.5 text-left text-label font-semibold uppercase tracking-[0.1em] text-content-muted !font-mono;
+    }
+
+    td {
+        @apply border-b border-surface-border px-3 py-2.5 align-top text-content-secondary;
+        min-width: 8rem;
+        max-width: 22rem;
+        overflow-wrap: anywhere;
+    }
+
+    tbody tr:last-child td {
+        @apply border-b-0;
+    }
+
+    tbody tr:hover td {
+        @apply bg-surface-hover;
+    }
+
+    &__row--skipped td {
+        @apply opacity-60;
+    }
+
+    &__num {
+        @apply tabular-nums text-content-muted;
+        min-width: 0 !important;
+    }
+
+    &__name {
+        @apply font-semibold text-content-primary;
+    }
+
+    &__nowrap {
+        @apply whitespace-nowrap;
+    }
+
+    &__link {
+        @apply text-brand underline decoration-transparent underline-offset-2 transition-colors;
+
+        &:hover {
+            @apply decoration-current;
+        }
+    }
+}
+
+.data-table__name-link {
+    @apply text-content-primary underline decoration-transparent underline-offset-2 transition-colors;
+
+    &:hover {
+        @apply text-brand decoration-current;
+    }
+}
+
+/* Social media in the list: one icon per account */
+.social-icons {
+    @apply flex flex-wrap gap-1.5;
+
+    &__link {
+        @apply flex transition-opacity;
+
+        &:hover {
+            @apply opacity-80;
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--app-brand);
+            outline-offset: 2px;
+        }
+    }
+}
+
+/* Social media in the import preview: one account per line */
+.social-line {
+    @apply flex items-center gap-1.5 whitespace-nowrap;
+
+    i {
+        @apply w-4 text-center text-content-muted;
+    }
+}
+
+/* Tab picker in the import preview */
+.import__sheet {
+    @apply mt-2 flex items-center gap-2 text-sm text-content-muted;
+}
+
+.import__sheet-select {
+    @apply h-9 min-w-0 max-w-full border border-field-border bg-field-bg px-2 text-sm text-content-primary;
+
+    &:focus-visible {
+        outline: 2px solid var(--app-brand);
+        outline-offset: 1px;
+    }
+}
+
+/* What was changed to import a row */
+.status__note {
+    @apply mt-1 block max-w-[16rem] text-xs text-status-warn;
+}
+
+/* Options to also import duplicates / problem rows */
+.import__footer {
+    @apply flex flex-col gap-4 border-t border-surface-border pt-4 sm:flex-row sm:items-end sm:justify-between;
+}
+
+.import__options {
+    @apply m-0 flex min-w-0 flex-col gap-2 border-0 p-0;
+}
+
+.import__options-title {
+    @apply mb-1 p-0 text-label font-semibold uppercase tracking-[0.14em] text-content-muted !font-mono;
+}
+
+.import__option {
+    @apply flex cursor-pointer items-center gap-2.5 text-sm text-content-secondary;
+
+    input {
+        @apply h-4 w-4 shrink-0 cursor-pointer;
+        accent-color: #f2a541;
+    }
+
+    strong {
+        @apply tabular-nums text-content-primary;
+    }
+}
+
+.import__options-hint {
+    @apply max-w-xl text-xs text-content-muted;
+}
+
+/* Rows imported to fix later */
+.data-table__name-link--missing {
+    @apply font-normal italic text-content-muted;
+}
+
+.review-badge {
+    @apply ml-2 inline-block whitespace-nowrap border border-status-warn px-1.5 py-px align-middle text-micro font-semibold uppercase tracking-wide text-status-warn !font-mono;
+}
+
+/* ---- List / grid of saved advertisers ------------------------------------ */
+
+.advertisers__toolbar {
+    @apply flex items-center justify-end border-b border-surface-border px-4 py-2.5;
+}
+
+.view-switch {
+    @apply flex border border-surface-border;
+
+    &__option {
+        @apply flex items-center gap-2 border-0 bg-transparent px-3 py-1.5 text-sm text-content-secondary transition-colors;
+
+        & + & {
+            @apply border-l border-surface-border;
+        }
+
+        &:hover {
+            @apply text-content-primary;
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--app-brand);
+            outline-offset: -2px;
+        }
+
+        &--active {
+            @apply bg-brand-soft font-semibold text-content-primary;
+        }
+    }
+}
+
+.advertiser-grid {
+    @apply grid gap-3 p-4;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+}
+
+.advertiser-card {
+    @apply flex min-w-0 flex-col gap-3 border border-surface-border bg-surface-base p-4 transition-colors;
+
+    &:hover {
+        @apply border-brand;
+    }
+
+    /* Rows the import tagged: a warm left edge so they stand out in the grid */
+    &--attention {
+        border-left: 3px solid var(--app-status-warn);
+    }
+
+    &__head {
+        @apply flex items-start justify-between gap-2;
+    }
+
+    &__name {
+        @apply min-w-0 text-base font-semibold leading-snug text-content-primary;
+        overflow-wrap: anywhere;
+
+        &:hover {
+            @apply text-brand;
+        }
+
+        &--missing {
+            @apply font-normal italic text-content-muted;
+        }
+    }
+
+    &__category {
+        @apply -mt-1 text-xs font-medium uppercase tracking-wide text-content-muted;
+    }
+
+    &__facts {
+        @apply flex flex-1 flex-col gap-1.5;
+    }
+
+    &__fact {
+        @apply grid grid-cols-[1rem_minmax(0,1fr)] gap-2 text-sm;
+
+        dt {
+            @apply pt-0.5 text-center text-xs text-content-muted;
+        }
+
+        dd {
+            @apply min-w-0 text-content-secondary;
+            overflow-wrap: anywhere;
+        }
+    }
+
+    /* Social badges and actions: a slim bar at the bottom of the card */
+    &__foot {
+        @apply -mb-2 -mt-1 flex items-center justify-between gap-2 border-t border-surface-border pt-1.5;
+    }
+
+    &__open {
+        @apply ml-auto flex shrink-0 items-center gap-1.5 text-sm font-medium text-brand;
+
+        &:hover {
+            @apply underline underline-offset-2;
+        }
+    }
+}
+
+.review-badge--card {
+    @apply ml-0 shrink-0;
+}
+
+/* Website: one line, cut off with an ellipsis (full address in the tooltip) */
+/*
+ * Website column: a fixed 12rem. Table cells ignore max-width and grow to their content,
+ * so the width is set on the link inside the cell, which then cuts off with "…".
+ */
+.data-table__website {
+    width: 12rem;
+    min-width: 12rem !important;
+    max-width: 12rem;
+
+    .data-table__truncate {
+        width: 12rem;
+        max-width: 12rem;
+    }
+}
+
+.data-table__truncate {
+    @apply block max-w-full overflow-hidden text-ellipsis whitespace-nowrap;
+    overflow-wrap: normal;
+}
+
+/* Actions column, kept visible at the right edge when the table scrolls sideways */
+.data-table__actions-head,
+.data-table__actions {
+    @apply sticky right-0 w-px whitespace-nowrap;
+    min-width: 0 !important;
+}
+
+.data-table__actions {
+    @apply bg-surface-raised;
+    box-shadow: -1px 0 0 var(--app-surface-border);
+}
+
+.data-table__actions-head {
+    @apply z-[2];
+    box-shadow: -1px 0 0 var(--app-surface-border);
+}
+
+.row-actions {
+    @apply flex items-center gap-1;
+
+    &__button {
+        @apply flex h-8 w-8 items-center justify-center border border-transparent bg-transparent text-sm text-content-secondary transition-colors;
+
+        &:hover:not(:disabled) {
+            @apply border-brand text-brand;
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--app-brand);
+            outline-offset: 1px;
+        }
+
+        &:disabled {
+            @apply cursor-not-allowed opacity-35;
+        }
+    }
+}
+
+.advertiser-card__foot .row-actions {
+    @apply -mr-1.5 ml-auto gap-0.5;
+}
+
+/* Smaller action buttons in cards than in the table */
+.advertiser-card__foot .row-actions__button {
+    @apply h-7 w-7 text-[0.8125rem];
+}
+
+/* ---- Filters (toolbar above the list) ------------------------------------- */
+
+.advertisers__toolbar {
+    @apply flex-wrap justify-between gap-3;
+}
+
+.filters {
+    @apply flex min-w-0 flex-1 flex-wrap items-center gap-2;
+
+    &__search {
+        @apply flex h-9 min-w-[14rem] flex-[1_1_16rem] items-center gap-2 border border-field-border bg-field-bg px-2.5 text-content-muted;
+
+        &:focus-within {
+            outline: 2px solid var(--app-brand);
+            outline-offset: 1px;
+        }
+    }
+
+    &__input {
+        @apply h-full min-w-0 flex-1 border-0 bg-transparent text-sm text-content-primary outline-none;
+
+        &::placeholder {
+            @apply text-content-muted;
+        }
+    }
+
+    &__field {
+        @apply flex;
+    }
+
+    &__select {
+        @apply h-9 max-w-[14rem] border border-field-border bg-field-bg px-2 text-sm text-content-primary;
+
+        &:focus-visible {
+            outline: 2px solid var(--app-brand);
+            outline-offset: 1px;
+        }
+
+        /* A set filter stands out */
+        &--on {
+            @apply border-brand bg-brand-soft font-semibold;
+        }
+    }
+
+    &__check {
+        @apply flex h-9 cursor-pointer items-center gap-2 whitespace-nowrap px-1 text-sm text-content-secondary;
+
+        input {
+            @apply h-4 w-4 cursor-pointer;
+            accent-color: #f2a541;
+        }
+    }
+
+    &__clear {
+        @apply h-9 border-0 bg-transparent px-1 text-sm font-semibold text-brand;
+
+        &:hover {
+            @apply underline underline-offset-2;
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--app-brand);
+            outline-offset: 2px;
+        }
+    }
+}

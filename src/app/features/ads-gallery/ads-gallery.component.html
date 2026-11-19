@@ -1,0 +1,243 @@
+<div class="page ads-gallery-page">
+    <app-page-header
+        eyebrow="Ads"
+        title="Ads Gallery"
+        subtitle="Manage and view all programmatic advertising content" />
+
+    <div class="ads-gallery-layout">
+        <!-- Search, sort and type filter, like gbp's Businesses sidebar -->
+        <aside class="ads-gallery-layout__sidebar">
+            <ntv-input
+                class="ads-gallery-layout__search"
+                placeholder="Search ads…"
+                [formControl]="searchControl"
+                [clearable]="true"
+                [nativeAutocomplete]="false"
+                data-testid="ads-gallery-search">
+                <i
+                    left-icon
+                    class="ads-gallery-layout__search-icon fa-sharp fa-regular fa-magnifying-glass"
+                    aria-hidden="true"></i>
+            </ntv-input>
+
+            <app-sort-control
+                label="Sort ads"
+                [options]="sortOptions"
+                [value]="sort()"
+                (valueChange)="sort.set($event)"
+                [direction]="sortDirection()"
+                (directionChange)="sortDirection.set($event)" />
+
+            <app-filter-list
+                label="Type"
+                [options]="typeOptions()"
+                [value]="typeFilter()"
+                (valueChange)="typeFilter.set($event)" />
+        </aside>
+
+        <ntv-card [config]="cardConfig" class="ads-gallery-layout__main">
+            <div class="ads-gallery">
+                @if (isLoading()) {
+                    @for (placeholder of skeletonPlaceholders; track placeholder) {
+                        <!-- Same frame and rows as a loaded card (16:9 thumbnail, one title
+                         line, one metadata line), so it has the exact same size at any
+                         width and the page height doesn't change when the ads load. -->
+                        <div class="ad-card ad-card--skeleton" aria-hidden="true">
+                            <ntv-card [config]="cardConfig">
+                                <div class="ad-card__content">
+                                    <div class="ad-card__thumbnail">
+                                        <ntv-skeleton
+                                            class="ad-card__skeleton"
+                                            variant="custom"
+                                            width="100%"
+                                            height="100%" />
+                                    </div>
+                                    <div class="ad-card__title">
+                                        <ntv-skeleton
+                                            class="ad-card__skeleton"
+                                            variant="custom"
+                                            width="70%"
+                                            height="15px" />
+                                    </div>
+                                    <div class="ad-card__metadata">
+                                        <ntv-skeleton
+                                            class="ad-card__skeleton"
+                                            variant="custom"
+                                            width="85%"
+                                            height="15px" />
+                                    </div>
+                                </div>
+                            </ntv-card>
+                        </div>
+                    }
+                } @else if (errorMessage()) {
+                    <div class="ads-gallery__message ads-gallery__message--error">
+                        <p>{{ errorMessage() }}</p>
+                    </div>
+                } @else if (contents().length === 0) {
+                    <div class="ads-gallery__message">
+                        <p>No ads match these filters.</p>
+                    </div>
+                } @else {
+                    @for (content of contents(); track content.contentId; let i = $index) {
+                        <div class="ad-card">
+                            <ntv-card
+                                [config]="cardConfig"
+                                [clickable]="true"
+                                data-testid="ads-gallery-card"
+                                (cardClick)="viewAd(content.contentId)">
+                                <div class="ad-card__content">
+                                    <!-- Thumbnail -->
+                                    <div class="ad-card__thumbnail">
+                                        @if (!content.mediaUrl) {
+                                            <div class="ad-card__thumbnail-placeholder">
+                                                {{
+                                                    content.status === 'failed'
+                                                        ? 'Failed'
+                                                        : 'Processing…'
+                                                }}
+                                            </div>
+                                        } @else if (content.creativeType === 'video') {
+                                            <video
+                                                [src]="content.mediaUrl"
+                                                [muted]="true"
+                                                [loop]="true"
+                                                [autoplay]="false"
+                                                playsinline
+                                                (error)="onImageError($event)"></video>
+                                        } @else {
+                                            <img
+                                                [ngSrc]="content.mediaUrl"
+                                                [alt]="content.title"
+                                                width="400"
+                                                height="225"
+                                                priority="false"
+                                                [sizes]="'(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw'"
+                                                (error)="onImageError($event)" />
+                                        }
+                                    </div>
+
+                                    <!-- Overlay content - Vendor Icon Top Right -->
+                                    <div class="ad-card__overlay">
+                                        @if (getVendorIcon(content.source)) {
+                                            <img
+                                                [src]="getVendorIcon(content.source)"
+                                                [alt]="content.source"
+                                                class="ad-card__vendor-icon" />
+                                        } @else {
+                                            <div
+                                                class="ad-card__category"
+                                                [ngClass]="{
+                                                    'ad-card__category--internal':
+                                                        content.source === 'Internal',
+                                                }">
+                                                {{ content.creativeSource }}
+                                            </div>
+                                        }
+                                    </div>
+
+                                    <!-- Title -->
+                                    <div class="ad-card__title">
+                                        {{
+                                            (content.title | slice: 0 : 20) +
+                                                (content.title.length > 20 ? '...' : '')
+                                        }}
+                                    </div>
+
+                                    <!-- Metadata -->
+                                    <div class="ad-card__metadata">
+                                        @if (content.playCount !== undefined) {
+                                            <span class="ad-card__meta-item" title="All-time plays">
+                                                <i
+                                                    class="fa-sharp fa-regular fa-play"
+                                                    aria-hidden="true"></i>
+                                                {{ content.playCount | number }}
+                                            </span>
+                                        }
+                                        @if (content.duration) {
+                                            <span class="ad-card__meta-item">
+                                                <svg
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                    width="14"
+                                                    height="14"
+                                                    viewBox="0 0 24 24"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    stroke-width="2"
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round">
+                                                    <circle cx="12" cy="12" r="10" />
+                                                    <polyline points="12 6 12 12 16 14" />
+                                                </svg>
+                                                {{ formatDuration(content.duration) }}
+                                            </span>
+                                        }
+                                        <span class="ad-card__meta-item ad-card__meta-item--flex">
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                width="14"
+                                                height="14"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                stroke-width="2"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round">
+                                                <rect
+                                                    x="3"
+                                                    y="4"
+                                                    width="18"
+                                                    height="18"
+                                                    rx="2"
+                                                    ry="2" />
+                                                <path d="M7 10h10M7 14h10" />
+                                            </svg>
+                                            {{ content.creativeType }}
+                                        </span>
+                                        <span class="ad-card__meta-item">
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                width="14"
+                                                height="14"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                stroke-width="2"
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round">
+                                                <rect
+                                                    x="3"
+                                                    y="4"
+                                                    width="18"
+                                                    height="18"
+                                                    rx="2"
+                                                    ry="2" />
+                                                <line x="16" y1="2" x2="16" y2="6" />
+                                                <line x1="8" y1="2" x2="8" y2="6" />
+                                                <line x1="3" y1="10" x2="21" y2="10" />
+                                            </svg>
+                                            {{ formatDate(content.createdAt) }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </ntv-card>
+                        </div>
+                    }
+                }
+            </div>
+
+            <!-- Load More Button -->
+            @if (!isLoading() && contents().length > 0 && hasMore()) {
+                <div class="load-more-container">
+                    <button class="load-more-btn" [disabled]="isLoadingMore()" (click)="loadMore()">
+                        @if (isLoadingMore()) {
+                            <span>Loading...</span>
+                        } @else {
+                            <span>Load More</span>
+                        }
+                    </button>
+                </div>
+            }
+        </ntv-card>
+    </div>
+</div>

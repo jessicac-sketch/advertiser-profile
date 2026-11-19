@@ -1,0 +1,295 @@
+<div class="page">
+    <app-page-header eyebrow="Overview" title="Dashboard" />
+
+    @if (error(); as message) {
+        <p class="dash-state dash-state--error" role="alert">{{ message }}</p>
+    } @else if (data() === null) {
+        <p class="dash-state">Loading the dashboard…</p>
+    } @else if (data()!.totals.advertisers === 0) {
+        <div class="dash-state">
+            <p class="dash-state__title">No advertisers yet</p>
+            <p>
+                Import them on the
+                <a routerLink="/advertiser-profile">Advertiser Profile</a> page; the dashboard fills
+                in from there.
+            </p>
+        </div>
+    } @else {
+        @let d = data()!;
+
+        <!-- 1. How many -->
+        <div class="kpis">
+            <div class="kpi">
+                <span class="kpi__label">Advertisers</span>
+                <span class="kpi__value">{{ d.totals.advertisers.toLocaleString() }}</span>
+                <span class="kpi__hint">{{ d.totals.complete.toLocaleString() }} complete</span>
+            </div>
+            <div class="kpi">
+                <span class="kpi__label">States</span>
+                <span class="kpi__value">{{ d.totals.states }}</span>
+                <span class="kpi__hint"
+                    >{{ plural(d.totals.withState, 'advertiser') }} with a state</span
+                >
+            </div>
+            <div class="kpi">
+                <span class="kpi__label">Categories</span>
+                <span class="kpi__value">{{ chips().length + 1 }}</span>
+                <span class="kpi__hint"
+                    >groups, from {{ d.totals.categoryNames.toLocaleString() }} category names</span
+                >
+            </div>
+            <a
+                class="kpi kpi--attention"
+                routerLink="/advertiser-profile"
+                [queryParams]="{ attention: true }">
+                <span class="kpi__label">Needs Attention</span>
+                <span class="kpi__value">{{ d.attention.profiles.toLocaleString() }}</span>
+                <span class="kpi__hint"
+                    >{{ d.attention.duplicates }} duplicates · {{ d.attention.missingName }} without
+                    a name</span
+                >
+            </a>
+        </div>
+
+        <!-- 2. By state -->
+        <section class="card" aria-labelledby="map-title">
+            <div class="card__head">
+                <h2 id="map-title" class="card__title">Advertisers by state</h2>
+                <span class="card__caption"
+                    >Darker = more {{ mapSubject() }} · click a state for its category mix</span
+                >
+            </div>
+
+            <div class="chips" role="group" aria-label="Category shown on the map">
+                <button
+                    type="button"
+                    class="chip"
+                    [class.chip--on]="selectedGroup() === -1"
+                    [attr.aria-pressed]="selectedGroup() === -1"
+                    (click)="selectedGroup.set(-1)">
+                    All categories
+                </button>
+                @for (chip of chips(); track chip.index) {
+                    <button
+                        type="button"
+                        class="chip"
+                        [class.chip--on]="selectedGroup() === chip.index"
+                        [attr.aria-pressed]="selectedGroup() === chip.index"
+                        (click)="toggleGroup(chip.index)">
+                        {{ chip.name }}
+                    </button>
+                }
+            </div>
+
+            <div class="map-row">
+                <div class="map-row__map">
+                    <app-us-states-choropleth
+                        [values]="mapValues()"
+                        [selected]="selectedState()"
+                        [tooltip]="mapTooltip()"
+                        [label]="'Map of the United States, each state shaded by ' + mapSubject()"
+                        (stateSelect)="selectState($event)" />
+                    <p class="card__note">
+                        Not on the map: {{ plural(d.totals.noLocation, 'advertiser') }} without a
+                        location and {{ d.totals.locationWithoutState.toLocaleString() }} with only
+                        a city or area name.
+                    </p>
+                </div>
+
+                <!-- Selected state's category mix -->
+                <div class="state-panel">
+                    <label class="state-panel__picker" for="dashboard-state">
+                        <span class="state-panel__eyebrow">Selected state</span>
+                        <select
+                            id="dashboard-state"
+                            class="state-panel__select"
+                            [value]="selectedState() ?? ''"
+                            (change)="selectState($any($event.target).value)">
+                            @for (option of stateOptions(); track option.code) {
+                                <option
+                                    [value]="option.code"
+                                    [selected]="option.code === selectedState()">
+                                    {{ option.label }}
+                                </option>
+                            }
+                        </select>
+                    </label>
+
+                    @if (statePanel(); as panel) {
+                        <div class="state-panel__head">
+                            <strong class="state-panel__name">{{ panel.name }}</strong>
+                            <span class="state-panel__total"
+                                ><strong>{{ panel.total }}</strong> advertisers</span
+                            >
+                        </div>
+                        <p class="state-panel__share">
+                            {{ panel.share }}% of advertisers with a state
+                            @if (panel.topGroup) {
+                                · most are {{ panel.topGroup }}
+                            }
+                        </p>
+
+                        <ul class="mix">
+                            @for (row of panel.rows; track row.name) {
+                                <li class="mix__row" [class.mix__row--on]="row.highlighted">
+                                    <span class="mix__name">{{ row.name }}</span>
+                                    <span class="mix__value"
+                                        ><strong>{{ row.pct }}%</strong> {{ row.count }}</span
+                                    >
+                                    <span class="mix__track" aria-hidden="true"
+                                        ><span class="mix__bar" [style.width.%]="row.width"></span
+                                    ></span>
+                                </li>
+                            }
+                        </ul>
+
+                        @if (panel.hidden > 0) {
+                            <button
+                                type="button"
+                                class="link-button"
+                                [attr.aria-expanded]="showAllCategories()"
+                                (click)="showAllCategories.set(!showAllCategories())">
+                                @if (showAllCategories()) {
+                                    Show fewer
+                                } @else {
+                                    See {{ panel.hidden }} more
+                                    {{ panel.hidden === 1 ? 'category' : 'categories' }}
+                                }
+                            </button>
+                        }
+
+                        <!-- Open the advertiser list filtered to this state (and category) -->
+                        <a
+                            class="state-panel__view"
+                            routerLink="/advertiser-profile"
+                            [queryParams]="stateListParams()">
+                            View {{ mapSubject() }} in {{ panel.name }}
+                            <i class="fa-sharp fa-regular fa-arrow-right" aria-hidden="true"></i>
+                        </a>
+                    } @else {
+                        <p class="card__note">Click a state on the map to see its categories.</p>
+                    }
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Categories -->
+        <div class="split">
+            <section class="card split__wide" aria-labelledby="categories-title">
+                <div class="card__head">
+                    <h2 id="categories-title" class="card__title">Advertisers by category</h2>
+                    <span class="card__caption">Click a category to show it on the map</span>
+                </div>
+                <ul class="group-bars">
+                    @for (bar of groupBars(); track bar.index) {
+                        <li>
+                            <button
+                                type="button"
+                                class="group-bar"
+                                [class.group-bar--on]="selectedGroup() === bar.index"
+                                [class.group-bar--muted]="bar.muted"
+                                [attr.aria-pressed]="selectedGroup() === bar.index"
+                                [disabled]="bar.muted"
+                                (click)="toggleGroup(bar.index)">
+                                <span class="group-bar__name">{{ bar.name }}</span>
+                                <span class="group-bar__track" aria-hidden="true"
+                                    ><span
+                                        class="group-bar__fill"
+                                        [style.width.%]="bar.width"></span
+                                ></span>
+                                <span class="group-bar__value"
+                                    ><strong>{{ bar.count.toLocaleString() }}</strong>
+                                    {{ bar.pct }}%</span
+                                >
+                            </button>
+                        </li>
+                    }
+                </ul>
+            </section>
+
+            <section class="card" aria-labelledby="side-title">
+                <h2 id="side-title" class="card__title">{{ sideList().title }}</h2>
+                <span class="card__caption">{{ sideList().caption }}</span>
+                <ol class="ranked">
+                    @for (row of sideList().rows; track row.label; let i = $index) {
+                        <li class="ranked__row">
+                            <span class="ranked__rank">{{ i + 1 }}</span>
+                            <span class="ranked__label">{{ row.label }}</span>
+                            <span class="ranked__value"
+                                ><strong>{{ row.count }}</strong> {{ row.note }}</span
+                            >
+                        </li>
+                    }
+                </ol>
+            </section>
+        </div>
+
+        <!-- 4. Needs Attention -->
+        <section class="card attention" aria-labelledby="attention-title">
+            <div class="attention__issues">
+                <h2 id="attention-title" class="card__title attention__title">Needs Attention</h2>
+                @for (issue of issues(); track issue.title) {
+                    <div class="issue">
+                        <span class="issue__head">
+                            <strong>{{ issue.title }}</strong>
+                            <span class="issue__count">{{ issue.count.toLocaleString() }}</span>
+                        </span>
+                        <span class="issue__track" aria-hidden="true"
+                            ><span class="issue__fill" [style.width.%]="issue.width"></span
+                        ></span>
+                        <span class="issue__hint">{{ issue.hint }}</span>
+                    </div>
+                }
+            </div>
+
+            <div class="attention__list">
+                <div class="card__head">
+                    <h3 class="attention__subtitle">To review</h3>
+                    <a
+                        class="card__link"
+                        routerLink="/advertiser-profile"
+                        [queryParams]="{ attention: true }"
+                        >View all that need attention</a
+                    >
+                </div>
+                @if (toReview().length) {
+                    <div class="table-scroll">
+                        <table class="review-table">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Business</th>
+                                    <th scope="col">Why</th>
+                                    <th scope="col"><span class="sr-only">Action</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (row of toReview(); track row.id) {
+                                    <tr>
+                                        <td>
+                                            <span
+                                                class="review-table__name"
+                                                [class.review-table__name--missing]="!row.name"
+                                                >{{ row.name || 'Unnamed business' }}</span
+                                            >
+                                            <span class="review-table__category">{{
+                                                row.category
+                                            }}</span>
+                                        </td>
+                                        <td>{{ row.why }}</td>
+                                        <td class="review-table__action">
+                                            <a [routerLink]="['/advertiser-profile', row.id]"
+                                                >Review</a
+                                            >
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                } @else {
+                    <p class="card__note">Nothing needs attention.</p>
+                }
+            </div>
+        </section>
+    }
+</div>

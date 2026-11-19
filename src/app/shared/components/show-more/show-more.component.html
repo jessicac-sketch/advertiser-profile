@@ -1,0 +1,20 @@
+<div class="show-more">
+    <p class="show-more__summary" aria-live="polite">
+        Showing {{ shown().toLocaleString() }} out of {{ total().toLocaleString() }}
+        {{ itemLabel() }}
+    </p>
+    @if (hasMore()) {
+        <button
+            type="button"
+            class="show-more__button"
+            [disabled]="loading()"
+            (click)="showMore.emit()">
+            @if (loading()) {
+                <i class="fa-sharp fa-regular fa-spinner-third fa-spin" aria-hidden="true"></i>
+                Loading…
+            } @else {
+                Show More
+            }
+        </button>
+    }
+</div>

@@ -1,0 +1,117 @@
+/**
+ * App theme tokens.
+ *
+ * Light is the default. Dark mode is the `dark` class on <html> (set by ThemeService):
+ * it switches the component-pantry components to their dark styles and swaps these
+ * variables. Tailwind exposes them as `surface-*`, `brand-*` and `content-*` colors
+ * (tailwind.config.js), so components use e.g. `@apply bg-surface-raised text-content-primary`
+ * and follow both themes for free.
+ *
+ * Palette: deep teal #0f4c5c, marigold #f2a541, off-white #f3f7f6, dark teal #0a2e37.
+ * Pantry components are re-themed to match in _pantry-dark-fixes.scss. Chart colors
+ * mirror these values in src/app/shared/models/chart/chart-colors.constant.ts.
+ */
+:root {
+    color-scheme: light;
+
+    /* Typography (applied app-wide in _typography.scss): DM Sans, with DM Mono for small uppercase labels */
+    --app-font-family: 'DM Sans', ui-sans-serif, system-ui, sans-serif;
+    --app-font-mono: 'DM Mono', ui-monospace, monospace;
+
+    /* Surfaces: page (off-white) → raised (white cards, header) → borders */
+    --app-surface-base: #f3f7f6;
+    --app-surface-raised: #ffffff;
+    --app-surface-border: #d5e1e3;
+    --app-surface-hover: rgba(15, 76, 92, 0.05);
+
+    /* Form fields (inputs, selects, unchecked checkboxes) */
+    --app-field-bg: #ffffff;
+    --app-field-border: #b3c7cb;
+
+    /*
+     * Brand accent. Marigold is too light for text on white (about 2:1), so in light mode
+     * the accent used for text, borders and underlines is a deeper amber (4.8:1 on white);
+     * filled buttons keep the true marigold via --app-brand-gradient.
+     */
+    --app-brand: #a5620c;
+    --app-brand-strong: #8a510a;
+    --app-brand-soft: rgba(242, 165, 65, 0.18);
+    --app-brand-gradient: linear-gradient(90deg, #f2a541 0%, #f6bb6c 100%);
+    --app-brand-gradient-hover: linear-gradient(90deg, #f6bb6c 0%, #f2a541 100%);
+    --app-on-brand: #0a2e37;
+
+    /* Deep teal, the identity color: login brand panel, avatars */
+    --app-identity: #0f4c5c;
+    --app-identity-strong: #0a2e37;
+    --app-on-identity: #f3f7f6;
+
+    /* Status: reserved for health/state, always paired with an icon or label */
+    --app-status-good: #15803d;
+    --app-status-warn: #a5620c;
+    --app-status-crit: #b91c1c;
+
+    /* Text */
+    --app-content-primary: #0a2e37;
+    --app-content-secondary: #3d5d65;
+    --app-content-muted: #557379;
+
+    /*
+     * Map shades (US states map on the Dashboard): one teal from light (few advertisers)
+     * to dark (many). `none` = states without advertisers; `-on` = label color on a shade.
+     */
+    --app-map-none: #eef3f4;
+    --app-map-1: #d3e7eb;
+    --app-map-2: #a8d1da;
+    --app-map-3: #6fafbf;
+    --app-map-4: #3f8a9c;
+    --app-map-5: #0f4c5c;
+    --app-map-on-light: #3d5d65;
+    --app-map-on-dark: #ffffff;
+    --app-map-stroke: #ffffff;
+    --app-map-selected: #d9821a;
+}
+
+:root.dark {
+    color-scheme: dark;
+
+    /* Surfaces: page → raised (cards, header) → borders — deep teal */
+    --app-surface-base: #0a2e37;
+    --app-surface-raised: #0e3a46;
+    --app-surface-border: #215663;
+    --app-surface-hover: rgba(255, 255, 255, 0.04);
+
+    /* Form fields (inputs, selects, unchecked checkboxes) */
+    --app-field-bg: #08262e;
+    --app-field-border: #3a6a75;
+
+    /* Brand accent: marigold reads well on deep teal, so it is used for text too */
+    --app-brand: #f2a541;
+    --app-brand-strong: #f6bb6c;
+    --app-brand-soft: rgba(242, 165, 65, 0.14);
+
+    /* Identity panel: a step lighter than the page so it still stands apart */
+    --app-identity: #0f4c5c;
+    --app-identity-strong: #08262e;
+
+    /* Status */
+    --app-status-good: #4ade80;
+    --app-status-warn: #f2a541;
+    --app-status-crit: #f87171;
+
+    /* Text */
+    --app-content-primary: #f3f7f6;
+    --app-content-secondary: #c2d4d6;
+    --app-content-muted: #85a2a8;
+
+    /* Map shades on the dark surface: more advertisers = brighter */
+    --app-map-none: #123f4b;
+    --app-map-1: #1d5866;
+    --app-map-2: #2d7385;
+    --app-map-3: #4f97a8;
+    --app-map-4: #86bfcc;
+    --app-map-5: #c6e3ea;
+    --app-map-on-light: #c2d4d6;
+    --app-map-on-dark: #0a2e37;
+    --app-map-stroke: #0a2e37;
+    --app-map-selected: #f2a541;
+}

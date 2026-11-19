@@ -1,0 +1,405 @@
+.cell-with-copy {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.table-cell-link {
+    background: none;
+    border: none;
+    padding: 0;
+    @apply text-brand;
+    text-decoration: underline;
+    cursor: pointer;
+    font: inherit;
+
+    &:hover {
+        text-decoration: none;
+    }
+}
+
+.schedule-cell {
+    cursor: default;
+}
+
+// Rendered at the template's top level (not nested in the table) and
+// position: fixed, so ntv-table's per-cell overflow: hidden (used for
+// ellipsis truncation on every non-fixed column) can't clip it. Position is
+// computed on hover from the cell's own bounding rect - see onScheduleHover().
+.schedule-tooltip {
+    position: fixed;
+    z-index: 999999;
+    min-width: 200px;
+    @apply border border-surface-border bg-surface-raised px-3 py-2;
+
+    &__row {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.125rem 0;
+        font-size: 0.75rem;
+        white-space: nowrap;
+    }
+
+    &__day {
+        @apply font-medium text-content-muted;
+    }
+
+    &__hours {
+        @apply text-content-primary;
+    }
+}
+
+// ntv-skeleton's real (visible) content slot works by CSS attribute selector,
+// not a wrapping element with layout of its own - anything projected into it
+// (e.g. ntv-card, a custom element with no :host{display:block} of its own)
+// previously relied on being a direct CSS Grid child to get auto-blockified.
+// Nested one level deeper here, that no longer applies, so it silently falls
+// back to `display: inline`, under which `width` doesn't apply at all.
+[skeleton-content] {
+    display: block;
+    width: 100%;
+}
+
+// The card-variant skeleton ignores its own width/height inputs entirely (only
+// border-radius is bound) - its size comes from a fixed 160px image placeholder
+// plus content padding, baked into the library's own CSS. Override directly for
+// the compact stat cards, which have no image, just two lines of text.
+::ng-deep {
+    .ranking-data__stats ntv-skeleton {
+        .skeleton--card {
+            height: 92px;
+        }
+
+        .skeleton__card-image {
+            display: none;
+        }
+
+        .skeleton__card-content {
+            justify-content: center;
+            height: 100%;
+            padding: 0.75rem 1rem;
+        }
+    }
+}
+
+.ranking-data {
+    &__error {
+        @apply flex items-center justify-between gap-4 border border-l-2 border-surface-border border-l-status-crit bg-surface-raised p-4 text-sm text-content-secondary;
+    }
+
+    &__error-retry {
+        @apply shrink-0 border border-status-crit px-4 py-2 text-sm font-medium text-status-crit transition-colors;
+
+        &:hover {
+            @apply bg-surface-hover;
+        }
+    }
+
+    &__stats {
+        @apply grid grid-cols-4 gap-3;
+
+        @media (max-width: 1200px) {
+            @apply grid-cols-2;
+        }
+
+        @media (max-width: 768px) {
+            @apply grid-cols-1;
+        }
+
+        &--six {
+            @apply grid-cols-6;
+
+            @media (max-width: 1400px) {
+                @apply grid-cols-3;
+            }
+
+            @media (max-width: 1200px) {
+                @apply grid-cols-2;
+            }
+
+            @media (max-width: 768px) {
+                @apply grid-cols-1;
+            }
+        }
+    }
+
+    &__stat-card {
+        @apply w-full min-w-0;
+
+        &--clickable {
+            cursor: pointer;
+        }
+
+        &--clickable:hover .stat-card {
+            @apply bg-surface-hover;
+        }
+
+        /* Active filter: brand edge and tint, like the sidebar's active link */
+        &--active .stat-card {
+            @apply border-l-brand bg-brand-soft;
+        }
+    }
+
+    &__table-content {
+        @apply p-6;
+        max-width: 100%;
+
+        // Remove side padding from table pagination
+        ::ng-deep .pagination {
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+
+        // ntv-table's :host has no explicit display/width, so as a custom
+        // element it can default to inline layout and ignore this container's
+        // width, letting the wide table push the whole page out horizontally
+        // instead of scrolling within its own internal wrapper.
+        ntv-table {
+            display: block;
+            width: 100%;
+            max-width: 100%;
+            overflow-x: auto;
+        }
+    }
+}
+
+.ranking-data {
+    // Keep tab labels on a single line instead of wrapping inside the fixed-width tab button
+    /* The tabs row, with room below before the table. From md the active tab's export
+       button sits at the row's right end, and the tabs (and their underline) take the
+       rest, ending a gap before it; on narrow screens the button drops below the tabs. */
+    &__tabs-bar {
+        @apply mb-5 md:flex md:items-center md:gap-6;
+    }
+
+    &__tabs-actions {
+        @apply mt-3 flex justify-end md:mt-0 md:shrink-0;
+
+        &:empty {
+            @apply hidden;
+        }
+    }
+
+    &__tabs {
+        @apply block min-w-0 md:flex-1;
+
+        ::ng-deep .ntv-tabs__tab {
+            white-space: nowrap;
+            width: auto;
+            min-width: auto;
+            padding: 8px 16px;
+        }
+    }
+
+    // Export button row above a modal's own table (e.g. the state-venues
+    // breakdown modal) - the modal has no dedicated actions slot next to
+    // its title, so this sits at the top of the projected content instead.
+    &__modal-export-row {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 0.75rem;
+    }
+
+    &__mini-stats {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    &__mini-stat {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        border: none;
+        background: none;
+        padding: 0.25rem 0.625rem;
+        font-size: 0.8125rem;
+        white-space: nowrap;
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+
+        &:hover {
+            @apply bg-surface-hover;
+        }
+
+        &--active {
+            @apply bg-brand-soft;
+        }
+    }
+
+    &__mini-stat-separator {
+        @apply text-surface-border;
+    }
+
+    &__mini-stat-swatch {
+        display: inline-block;
+        width: 0.5rem;
+        height: 0.5rem;
+        @apply bg-content-muted;
+
+        &--green {
+            @apply bg-status-good;
+        }
+
+        &--yellow {
+            @apply bg-status-warn;
+        }
+
+        &--red {
+            @apply bg-status-crit;
+        }
+    }
+
+    &__mini-stat-label {
+        @apply text-content-muted;
+    }
+
+    &__mini-stat-value {
+        @apply font-bold tabular-nums text-content-primary;
+    }
+
+    &__pop-legend {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    &__search-input {
+        @apply border border-field-border bg-field-bg text-content-primary;
+        padding: 0.375rem 0.75rem;
+        font-size: 0.875rem;
+        min-width: 260px;
+    }
+
+    &__pop-legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        @apply border border-surface-border bg-surface-base text-content-secondary;
+        padding: 0.375rem 0.75rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+
+        &:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        &--active {
+            @apply border-brand bg-brand-soft text-content-primary;
+        }
+    }
+
+    &__pop-legend-swatch {
+        display: inline-block;
+        width: 0.75rem;
+        height: 0.75rem;
+    }
+
+    &__pop-legend-clear {
+        @apply text-brand;
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+
+        &:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+    }
+}
+
+.stat-card {
+    @apply relative flex flex-col gap-1 border border-l-2 border-surface-border bg-surface-base px-3 py-2.5 transition-colors;
+    cursor: pointer;
+
+    &__label {
+        @apply text-label font-semibold uppercase tracking-wider text-content-muted !font-mono;
+    }
+
+    &__value {
+        @apply text-2xl font-bold tabular-nums text-content-primary;
+    }
+
+    /* Bucket range, outlined in the bucket's status color */
+    &__badge {
+        @apply absolute right-2 top-2.5 border px-1.5 py-px text-micro font-semibold uppercase tracking-wide !font-mono;
+
+        &--green {
+            @apply border-status-good text-status-good;
+        }
+
+        &--yellow {
+            @apply border-status-warn text-status-warn;
+        }
+
+        &--red {
+            @apply border-status-crit text-status-crit;
+        }
+
+        &--gray {
+            @apply border-surface-border text-content-muted;
+        }
+    }
+}
+
+// Creative and Screenshot thumbnails share one fixed 16:9 box, so both columns
+// show identical thumbnails. `max-width: none` stops Tailwind's base
+// `img, video { max-width: 100% }` from squeezing them to the cell's width.
+.creative-thumbnail {
+    @apply block shrink-0 bg-surface-border object-cover;
+    width: 80px;
+    height: 45px;
+    max-width: none;
+
+    &--placeholder {
+        @apply bg-surface-border;
+    }
+
+    // Not available yet (e.g. no proof-of-play screenshot): a muted "--" in the
+    // same box, outlined instead of filled
+    &--empty {
+        @apply flex items-center justify-center border border-surface-border bg-transparent text-sm text-content-muted;
+    }
+
+    &--clickable {
+        cursor: pointer;
+    }
+}
+
+// Make table rows clickable
+::ng-deep {
+    .table-row--clickable {
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+
+        &:hover {
+            background-color: var(--app-surface-hover) !important;
+        }
+
+        &:active {
+            background-color: var(--app-brand-soft) !important;
+        }
+    }
+
+    // Highlight raw Programmatic Ads rows by proof-of-play duration.
+    // --pop-row-color is set inline per row; the rule is a no-op when it's unset.
+    .pop-row td {
+        background-color: rgba(var(--pop-row-color), 0.15) !important;
+    }
+}
+
+// Stat cards draw their own outline (.stat-card, the app-metric look); drop the
+// wrapping ntv-card's frame so they don't get a double border.
+:host ::ng-deep .ranking-data__stat-card .card {
+    border-width: 0 !important;
+    background-color: transparent !important;
+}

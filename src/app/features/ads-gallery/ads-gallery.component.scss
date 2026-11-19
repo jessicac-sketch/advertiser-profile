@@ -1,0 +1,201 @@
+/* The shared .page class sets overflow-x: hidden (guards other pages against stray
+   horizontal overflow - see docs/HISTORY.md) - per spec, that forces overflow-y to a
+   computed auto too, which makes .page itself the nearest scroll container for any
+   position: sticky descendant instead of the layout's real scrollable main area,
+   silently breaking the sidebar's stickiness below. This page's content (a card grid)
+   has no horizontal-overflow risk, so opt out of it here only, not on the shared class. */
+.ads-gallery-page {
+    overflow: visible;
+}
+
+/* Sidebar (search, sort, type filter) | the gallery - same layout as gbp's Businesses page */
+.ads-gallery-layout {
+    @apply grid grid-cols-1 gap-3 lg:grid-cols-[300px_minmax(0,1fr)];
+
+    &__sidebar {
+        @apply flex flex-col gap-3 lg:sticky lg:top-0 lg:self-start;
+    }
+
+    &__main {
+        @apply block min-w-0;
+    }
+
+    &__search {
+        @apply block w-full;
+    }
+
+    &__search-icon {
+        @apply text-xs text-content-muted;
+    }
+}
+
+/* 12px between the ad cards and around them, like the gaps between cards on every page.
+   A grid with fixed column counts, not flex-wrap with percentage widths: grid columns
+   split the box's real width, so the cards always fill the row. With flex, the
+   percentage widths could fall back to each card's content width (after a sort or
+   filter reload), leaving a wide empty strip on the right. */
+.ads-gallery {
+    /* Equal columns, so every card (and its 16:9 thumbnail) is the same size: 6 per row
+       on desktop, fewer on narrower screens (the filter sidebar takes ~324px from lg) */
+    @apply grid grid-cols-2 gap-3 p-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6;
+
+    &__message {
+        @apply col-span-full w-full py-8 text-center text-content-muted;
+
+        &--error {
+            @apply text-status-crit;
+        }
+    }
+}
+
+.ad-card {
+    @apply min-w-0 cursor-pointer;
+
+    /* Outlines, not lift/shadow: brighten the frame on hover */
+    &:hover ::ng-deep .card {
+        border-color: var(--app-brand) !important;
+    }
+
+    &__content {
+        @apply relative flex flex-col;
+    }
+
+    /* Loading placeholder: not clickable, no hover frame */
+    &--skeleton {
+        @apply cursor-default;
+
+        &:hover ::ng-deep .card {
+            border-color: var(--app-surface-border) !important;
+        }
+    }
+
+    /* Block-level so each bar fills its row exactly (an inline host would add a
+       baseline gap and change the card's height) */
+    &__skeleton {
+        @apply block h-full;
+    }
+
+    &__thumbnail {
+        @apply relative w-full overflow-hidden bg-black;
+        aspect-ratio: 16 / 9;
+
+        img,
+        video {
+            @apply block h-full w-full object-contain;
+        }
+
+        &-placeholder {
+            @apply absolute inset-0 flex items-center justify-center bg-surface-base text-xs text-content-muted;
+        }
+    }
+
+    /* Tags drawn over the media: a translucent dark chip so they read on any image */
+    &__venue-pill,
+    &__type-badge {
+        @apply whitespace-nowrap px-2.5 py-1 text-micro font-medium text-content-primary;
+        background-color: color-mix(in srgb, var(--app-surface-base) 80%, transparent);
+    }
+
+    &__venue-pill {
+        @apply absolute left-2 top-2 z-[1];
+    }
+
+    &__type-badge {
+        @apply font-semibold uppercase !font-mono;
+    }
+
+    &__overlay {
+        @apply absolute right-0 top-0 z-[1] flex items-start justify-end p-2;
+    }
+
+    &__vendor-icon {
+        @apply h-[35px] w-[35px] bg-content-primary object-contain p-1;
+    }
+
+    &__category {
+        @apply whitespace-nowrap border border-brand bg-brand-soft px-2.5 py-1 text-micro font-medium text-brand;
+
+        &--internal {
+            @apply border-content-secondary bg-surface-raised text-content-secondary;
+        }
+    }
+
+    &__actions {
+        @apply flex gap-2;
+    }
+
+    &__action-btn {
+        @apply flex h-7 w-7 cursor-pointer items-center justify-center border transition-colors;
+
+        svg {
+            width: 12px;
+            height: 12px;
+        }
+
+        &--copy {
+            @apply border-surface-border bg-surface-raised text-content-secondary;
+
+            &:hover {
+                @apply text-content-primary;
+            }
+        }
+
+        &--delete {
+            @apply border-status-crit bg-surface-raised text-status-crit;
+
+            &:hover {
+                @apply bg-surface-hover;
+            }
+        }
+    }
+
+    &__title {
+        @apply truncate px-2 pb-1 pt-2 text-xs font-medium leading-tight text-content-primary;
+    }
+
+    &__metadata {
+        @apply flex flex-row gap-2 px-2 pb-2 text-micro text-content-muted;
+    }
+
+    &__meta-item {
+        @apply flex items-center gap-1 overflow-hidden text-ellipsis whitespace-nowrap;
+
+        &--flex {
+            @apply min-w-0 flex-1;
+        }
+
+        svg {
+            @apply flex-shrink-0;
+            width: 12px;
+            height: 12px;
+            opacity: 0.7;
+        }
+
+        i {
+            @apply flex-shrink-0 text-micro opacity-70;
+        }
+    }
+}
+
+.load-more-container {
+    @apply flex justify-center;
+    padding: 2rem 1.5rem;
+}
+
+/* Matches the primary ntv-button: the brand gradient (see _pantry-dark-fixes.scss) */
+.load-more-btn {
+    @apply px-8 py-3 font-medium transition-opacity;
+    color: var(--app-on-brand);
+    background-image: var(--app-brand-gradient);
+    border: none;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+        opacity: 0.9;
+    }
+
+    &:disabled {
+        @apply cursor-not-allowed border border-surface-border bg-field-bg text-content-muted;
+        background-image: none;
+    }
+}

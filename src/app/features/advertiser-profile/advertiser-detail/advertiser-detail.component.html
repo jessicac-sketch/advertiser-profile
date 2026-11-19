@@ -1,0 +1,249 @@
+<div class="page">
+    <a class="back-link" routerLink="/advertiser-profile">
+        <i class="fa-sharp fa-regular fa-arrow-left" aria-hidden="true"></i>
+        All advertisers
+    </a>
+
+    @if (error(); as message) {
+        <div class="detail-state detail-state--error" role="alert">{{ message }}</div>
+    } @else if (advertiser(); as a) {
+        <app-page-header
+            [eyebrow]="a.category || 'Advertiser'"
+            [title]="a.business_name || 'Unnamed business'"
+            [subtitle]="a.location ?? ''">
+            @if (issues().length) {
+                <span class="attention-tag">
+                    <i class="fa-sharp fa-regular fa-triangle-exclamation" aria-hidden="true"></i>
+                    Needs Attention
+                </span>
+            }
+        </app-page-header>
+
+        <!-- Why the import tagged this profile, and what to do -->
+        @if (issues().length) {
+            <section class="attention" aria-labelledby="attention-title">
+                <header class="attention__header">
+                    <h2 id="attention-title" class="attention__title">
+                        <i
+                            class="fa-sharp fa-regular fa-triangle-exclamation"
+                            aria-hidden="true"></i>
+                        Needs Attention
+                    </h2>
+                    <p class="attention__summary">
+                        {{ issues().length }} {{ issues().length === 1 ? 'thing' : 'things' }} to
+                        check, found when this profile was imported.
+                    </p>
+                </header>
+
+                <ol class="attention__list">
+                    @for (issue of issues(); track $index) {
+                        <li class="issue">
+                            <span class="issue__icon" aria-hidden="true">
+                                <i class="{{ issue.icon }}"></i>
+                            </span>
+                            <div class="issue__body">
+                                <h3 class="issue__title">{{ issue.title }}</h3>
+                                <p class="issue__text">{{ issue.explanation }}</p>
+                                <p class="issue__action">
+                                    <strong>What to do:</strong> {{ issue.action }}
+                                </p>
+                            </div>
+                        </li>
+                    }
+                </ol>
+
+                <!-- The other profiles with the same name and location -->
+                @if (hasDuplicateIssue()) {
+                    <div class="matches">
+                        <h3 class="matches__title">
+                            Profiles with the same name and location
+                            <span class="detail-card__count">{{
+                                a.sameNameAndLocation.length + 1
+                            }}</span>
+                        </h3>
+                        <ul class="matches__list">
+                            <li class="match match--current">
+                                <span class="match__name">
+                                    {{ a.business_name || 'Unnamed business' }}
+                                    <span class="match__this">This profile</span>
+                                </span>
+                                <span class="match__meta">
+                                    @if (a.video_url; as url) {
+                                        {{ fileName(url) }} ·
+                                    }
+                                    Added {{ a.created_at | date: 'medium' }}
+                                </span>
+                            </li>
+                            @for (other of a.sameNameAndLocation; track other.id) {
+                                <li>
+                                    <a
+                                        class="match"
+                                        [routerLink]="['/advertiser-profile', other.id]">
+                                        <span class="match__name">
+                                            {{ other.business_name }}
+                                            @if (other.review_notes?.length) {
+                                                <span class="match__tag">Needs Attention</span>
+                                            }
+                                        </span>
+                                        <span class="match__meta">
+                                            @if (other.video_url; as url) {
+                                                {{ fileName(url) }} ·
+                                            }
+                                            Added {{ other.created_at | date: 'medium' }}
+                                        </span>
+                                        <i
+                                            class="match__open fa-sharp fa-regular fa-arrow-right"
+                                            aria-hidden="true"></i>
+                                    </a>
+                                </li>
+                            } @empty {
+                                <li class="match match--empty">
+                                    No other profile has this name and location any more. If the
+                                    duplicate was removed, this profile no longer needs attention
+                                    for it.
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                }
+            </section>
+        }
+
+        <div class="detail-grid">
+            <!-- Video: the source of this profile -->
+            <section class="detail-card" aria-labelledby="video-title">
+                <h2 id="video-title" class="detail-card__title">Video</h2>
+                @if (a.video_url; as url) {
+                    @if (!videoFailed()) {
+                        <video
+                            class="video"
+                            [src]="url"
+                            controls
+                            preload="metadata"
+                            playsinline
+                            (error)="videoFailed.set(true)">
+                            Your browser can't play this video.
+                        </video>
+                    } @else {
+                        <p class="video video--failed">
+                            <i class="fa-sharp fa-regular fa-video-slash" aria-hidden="true"></i>
+                            The video can't be played here. Open it with the link below.
+                        </p>
+                    }
+                    <a
+                        class="facts__link video__link"
+                        [href]="url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        [attr.title]="url">
+                        <i class="fa-sharp fa-regular fa-file-video" aria-hidden="true"></i>
+                        <span class="video__file">{{ fileName(url) }}</span>
+                        <i
+                            class="fa-sharp fa-regular fa-arrow-up-right-from-square"
+                            aria-hidden="true"></i>
+                    </a>
+                } @else {
+                    <p class="detail-card__empty">No video linked to this profile.</p>
+                }
+            </section>
+
+            <div class="detail-stack">
+                <!-- Business details -->
+                <section class="detail-card" aria-labelledby="details-title">
+                    <h2 id="details-title" class="detail-card__title">Business details</h2>
+                    <dl class="facts">
+                        <div class="facts__row">
+                            <dt>Business name</dt>
+                            <dd>
+                                @if (a.business_name) {
+                                    {{ a.business_name }}
+                                } @else {
+                                    <span class="facts__missing">Missing</span>
+                                }
+                            </dd>
+                        </div>
+                        <div class="facts__row">
+                            <dt>Category</dt>
+                            <dd>{{ a.category || '—' }}</dd>
+                        </div>
+                        <div class="facts__row">
+                            <dt>Location</dt>
+                            <dd>{{ a.location || '—' }}</dd>
+                        </div>
+                        <div class="facts__row">
+                            <dt>Phone</dt>
+                            <dd>
+                                @if (a.phone_number; as phone) {
+                                    <a class="facts__link" [href]="telHref(phone)">{{ phone }}</a>
+                                } @else {
+                                    —
+                                }
+                            </dd>
+                        </div>
+                        <div class="facts__row">
+                            <dt>Website</dt>
+                            <dd>
+                                @if (a.website; as url) {
+                                    <a
+                                        class="facts__link"
+                                        [href]="url"
+                                        target="_blank"
+                                        rel="noopener noreferrer">
+                                        {{ shortUrl(url) }}
+                                        <i
+                                            class="fa-sharp fa-regular fa-arrow-up-right-from-square"
+                                            aria-hidden="true"></i>
+                                    </a>
+                                } @else {
+                                    —
+                                }
+                            </dd>
+                        </div>
+                    </dl>
+                </section>
+
+                <!-- Social media: one row per account -->
+                <section class="detail-card" aria-labelledby="social-title">
+                    <h2 id="social-title" class="detail-card__title">
+                        Social media
+                        <span class="detail-card__count">{{ socialLinks().length }}</span>
+                    </h2>
+
+                    @if (socialLinks().length) {
+                        <ul class="socials">
+                            @for (link of socialLinks(); track link.url) {
+                                <li>
+                                    <a
+                                        class="socials__item"
+                                        [href]="link.url"
+                                        target="_blank"
+                                        rel="noopener noreferrer">
+                                        <app-social-badge [link]="link" size="lg" />
+                                        <span class="socials__text">
+                                            <span class="socials__platform">{{
+                                                link.platform
+                                            }}</span>
+                                            <span class="socials__handle">{{ link.handle }}</span>
+                                        </span>
+                                        <i
+                                            class="socials__open fa-sharp fa-regular fa-arrow-up-right-from-square"
+                                            aria-hidden="true"></i>
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    } @else {
+                        <p class="detail-card__empty">No social media links.</p>
+                    }
+                </section>
+            </div>
+        </div>
+
+        <p class="detail-meta">
+            Added {{ a.created_at | date: 'medium' }} · Updated
+            {{ a.updated_at | date: 'medium' }}
+        </p>
+    } @else {
+        <div class="detail-state">Loading advertiser…</div>
+    }
+</div>

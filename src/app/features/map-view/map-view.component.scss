@@ -1,0 +1,163 @@
+// Page-specific styles - using shared .page styles from global styles.scss
+
+.map-view {
+    // Named container, for the breakdown card's responsive column layout below
+    // (same technique as the Dashboard's own breakdown cards).
+    container: map-view / inline-size;
+
+    /* Header, right: the total, then the range menu and picker, in one row */
+    &__header-actions {
+        @apply flex flex-wrap items-center justify-end gap-3;
+    }
+
+    /* A brand chip as tall as the range menu and picker beside it (40px) */
+    &__ads-total {
+        @apply m-0 flex h-10 items-center whitespace-nowrap border border-brand bg-brand-soft px-3.5 text-sm font-semibold tabular-nums text-brand;
+    }
+
+    &__body {
+        display: grid;
+        // 50/50 split
+        grid-template-columns: minmax(0, 1fr) minmax(20rem, 1fr);
+        gap: 0.75rem;
+        // Stretch (the default - no align-items override) so both columns match
+        // the row's height (the map card's own ~500px, since it's the taller
+        // natural side) instead of each sizing to its own content; the chart
+        // card then fills that stretched height down to the chart itself (see
+        // DailyAdsBarChartComponent's own height: 100%).
+
+        @media (max-width: 900px) {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    &__map-column {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        min-height: 0;
+    }
+
+    &__map-card {
+        // The map's own canvas color is set in us-states-map.component.ts;
+        // this card is just the frame around it - no padding, so the map
+        // fills the card edge to edge.
+        padding: 0;
+        // Fills the map column's full (grid-stretched) height - ntv-card has
+        // no built-in height: 100% the way app-summary-card does, so this is
+        // explicit, to match the chart card's height on the other side.
+        flex: 1;
+        min-height: 0;
+    }
+
+    // Wraps the map plus the floating state badge, so the badge can be
+    // positioned absolute against this instead of the whole page.
+    &__map-frame {
+        position: relative;
+    }
+
+    // Floats over the map's upper-right corner instead of its own header
+    // row above the card - same info (which state, its venue/ad counts),
+    // just overlaid on the map itself per the request, not a separate row.
+    &__map-badge {
+        position: absolute;
+        top: 0.75rem;
+        right: 0.75rem;
+        z-index: 1;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.6rem 0.9rem;
+        background: var(--app-surface-raised);
+        border: 2px solid var(--app-brand);
+        // A stronger drop shadow to lift it off the map's own colors, plus a
+        // soft brand-tinted glow ring around the border for emphasis - the
+        // previous thin border/faint shadow read as flat against the map.
+        box-shadow:
+            0 8px 24px rgb(0 0 0 / 50%),
+            0 0 0 4px rgb(241 127 40 / 18%);
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--app-content-primary);
+    }
+
+    // Brand chip: the same orange as the map's selected-state highlight.
+    &__map-badge-pill {
+        @apply border border-brand bg-brand-soft px-2.5 py-0.5 text-sm text-brand;
+    }
+
+    &__map-badge-count {
+        color: var(--app-content-secondary);
+    }
+
+    // Plain layout, not a bordered/padded box: each app-summary-card below
+    // already supplies its own full card chrome (border, shadow, header) -
+    // same convention as the Dashboard's own card groupings.
+    &__panel {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        min-height: 0;
+    }
+
+    &__panel-empty {
+        color: var(--app-content-muted);
+        font-size: 0.875rem;
+    }
+
+    /* Previous breakdown stays visible, dimmed, while a new state/range loads */
+    &__loading {
+        @apply pointer-events-none opacity-50 transition-opacity;
+    }
+
+    /* Ads/Categories tabs, 40 / 30 / 30: top list → the picked row's next level → the
+       level after that. Matches the Dashboard's own breakdown cards - duplicated here
+       since Angular component styles are encapsulated, not inherited. */
+    &__thirds {
+        @apply grid grid-cols-1 gap-5;
+
+        @container map-view (min-width: 60rem) {
+            @apply grid-cols-[minmax(0,4fr)_minmax(0,3fr)_minmax(0,3fr)] gap-6;
+        }
+    }
+
+    /* States tab once a state is selected, 50 / 50: ads → the picked ad's venues there -
+       one fewer level than __thirds, since "which state" is already resolved. */
+    &__halves {
+        @apply grid grid-cols-1 gap-5;
+
+        @container map-view (min-width: 48rem) {
+            @apply grid-cols-2 gap-6;
+        }
+    }
+
+    /* Switches which of the States/Categories/Ads cards below is shown - same width
+       family as the Dashboard's own switcher, sits in the card header's action slot
+       (where "View all" would go). */
+    &__breakdown-switcher {
+        @apply w-72 max-w-full;
+    }
+
+    &__half {
+        @apply flex min-w-0 flex-col gap-3;
+    }
+
+    &__split {
+        @apply flex min-w-0 flex-col gap-3 border-t border-surface-border pt-5;
+
+        @container map-view (min-width: 60rem) {
+            @apply border-l border-t-0 pl-6 pt-0;
+        }
+    }
+
+    &__split-title {
+        @apply flex min-w-0 items-baseline gap-1.5 text-label font-semibold uppercase tracking-wider text-content-muted !font-mono;
+    }
+
+    /* The name inside a column title: same size and font as the title, bold, in the
+       accent color (case kept, so file names and IDs read as-is) */
+    &__split-name {
+        @apply min-w-0 truncate font-bold normal-case text-brand;
+    }
+}

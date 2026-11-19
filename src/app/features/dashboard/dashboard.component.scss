@@ -1,0 +1,402 @@
+/* Uses the shared .page layout from styles.scss */
+
+.dash-state {
+    @apply flex flex-col items-center gap-2 border border-surface-border bg-surface-raised px-6 py-14 text-center text-sm text-content-muted;
+
+    &--error {
+        @apply text-status-crit;
+    }
+
+    &__title {
+        @apply text-base font-semibold text-content-primary;
+    }
+}
+
+/* ---- 1. How many ---------------------------------------------------------- */
+
+.kpis {
+    @apply grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4;
+}
+
+.kpi {
+    @apply flex flex-col gap-1.5 border border-surface-border bg-surface-raised px-5 py-4 text-content-primary;
+
+    &__label {
+        @apply text-label font-medium uppercase tracking-[0.12em] text-content-muted !font-mono;
+    }
+
+    &__value {
+        @apply text-4xl font-bold leading-tight tabular-nums;
+    }
+
+    &__hint {
+        @apply text-sm text-content-secondary;
+    }
+
+    &--attention {
+        border-top: 3px solid var(--app-status-warn);
+        transition: border-color 0.12s;
+
+        .kpi__label {
+            @apply text-status-warn;
+        }
+
+        &:hover {
+            @apply border-status-warn;
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--app-brand);
+            outline-offset: 2px;
+        }
+    }
+}
+
+/* ---- Cards ---------------------------------------------------------------- */
+
+.card {
+    @apply flex min-w-0 flex-col gap-3 border border-surface-border bg-surface-raised px-6 py-5;
+
+    &__head {
+        @apply flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1;
+    }
+
+    &__title {
+        @apply text-lg font-bold text-content-primary;
+    }
+
+    &__caption {
+        @apply text-sm text-content-muted;
+    }
+
+    &__note {
+        @apply text-sm text-content-muted;
+    }
+
+    &__link {
+        @apply text-sm font-semibold text-brand;
+
+        &:hover {
+            @apply underline underline-offset-2;
+        }
+    }
+}
+
+/* ---- 2. By state ---------------------------------------------------------- */
+
+.chips {
+    @apply flex flex-wrap gap-1.5;
+}
+
+.chip {
+    @apply min-h-[34px] border border-surface-border bg-surface-raised px-3 text-sm text-content-primary transition-colors;
+
+    &:hover {
+        @apply border-brand;
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--app-brand);
+        outline-offset: 2px;
+    }
+
+    &--on {
+        @apply border-brand bg-brand-soft font-semibold;
+    }
+}
+
+.map-row {
+    @apply grid items-start gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)];
+
+    &__map {
+        @apply flex min-w-0 flex-col gap-2;
+    }
+}
+
+.state-panel {
+    @apply flex min-w-0 flex-col gap-3 border border-surface-border px-5 py-4;
+
+    &__picker {
+        @apply flex items-center justify-between gap-3;
+    }
+
+    &__eyebrow {
+        @apply text-label font-medium uppercase tracking-[0.12em] text-content-muted !font-mono;
+    }
+
+    &__select {
+        @apply h-9 min-w-0 max-w-[60%] border border-field-border bg-field-bg px-2 text-sm text-content-primary;
+
+        &:focus-visible {
+            outline: 2px solid var(--app-brand);
+            outline-offset: 1px;
+        }
+    }
+
+    &__head {
+        @apply flex items-baseline justify-between gap-3;
+    }
+
+    &__name {
+        @apply text-2xl font-bold text-content-primary;
+    }
+
+    &__total {
+        @apply text-sm tabular-nums text-content-secondary;
+
+        strong {
+            @apply text-content-primary;
+        }
+    }
+
+    &__share {
+        @apply text-sm text-content-muted;
+    }
+}
+
+/* The selected state's categories */
+.mix {
+    @apply flex flex-col gap-2.5;
+
+    &__row {
+        @apply grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 text-sm;
+    }
+
+    &__name {
+        @apply min-w-0 text-content-primary;
+    }
+
+    &__value {
+        @apply text-right tabular-nums text-content-muted;
+
+        strong {
+            @apply text-content-primary;
+        }
+    }
+
+    &__track {
+        @apply col-span-2 block h-2 bg-surface-base;
+    }
+
+    &__bar {
+        @apply block h-2;
+        background-color: var(--app-map-5);
+    }
+
+    &__row--on {
+        .mix__name {
+            @apply font-bold;
+        }
+
+        .mix__bar {
+            background-color: var(--app-map-selected);
+        }
+    }
+}
+
+.link-button {
+    @apply min-h-[36px] self-start border-0 bg-transparent p-0 text-sm font-semibold text-brand;
+
+    &:hover {
+        @apply underline underline-offset-2;
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--app-brand);
+        outline-offset: 2px;
+    }
+}
+
+/* ---- 3. Categories -------------------------------------------------------- */
+
+.split {
+    @apply grid gap-3 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)];
+}
+
+.group-bars {
+    @apply flex flex-col gap-0.5;
+}
+
+.group-bar {
+    @apply grid w-full grid-cols-[10rem_minmax(0,1fr)_6.5rem] items-center gap-3 border-0 bg-transparent px-1.5 py-1 text-left text-sm text-content-primary transition-colors;
+
+    &:hover:not(:disabled) {
+        @apply bg-surface-hover;
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--app-brand);
+        outline-offset: 1px;
+    }
+
+    &:disabled {
+        @apply cursor-default;
+    }
+
+    &__track {
+        @apply block h-3.5;
+    }
+
+    &__fill {
+        @apply block h-3.5;
+        background-color: var(--app-map-5);
+    }
+
+    &__value {
+        @apply text-right tabular-nums text-content-muted;
+
+        strong {
+            @apply text-content-primary;
+        }
+    }
+
+    &--muted .group-bar__fill {
+        background-color: var(--app-map-2);
+    }
+
+    &--on {
+        @apply bg-brand-soft font-semibold;
+
+        .group-bar__fill {
+            background-color: var(--app-map-selected);
+        }
+    }
+}
+
+.ranked {
+    @apply mt-1 flex flex-col;
+
+    &__row {
+        @apply grid min-h-[36px] grid-cols-[1.5rem_minmax(0,1fr)_auto] items-center gap-2.5 border-b border-surface-border text-sm;
+
+        &:last-child {
+            @apply border-b-0;
+        }
+    }
+
+    &__rank {
+        @apply text-xs text-content-muted !font-mono;
+    }
+
+    &__label {
+        @apply min-w-0 text-content-primary;
+    }
+
+    &__value {
+        @apply tabular-nums text-content-muted;
+
+        strong {
+            @apply text-content-primary;
+        }
+    }
+}
+
+/* ---- 4. Needs Attention ---------------------------------------------------- */
+
+.attention {
+    @apply grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)];
+    border-color: var(--app-status-warn);
+
+    &__issues {
+        @apply flex flex-col gap-3;
+    }
+
+    &__title {
+        @apply text-status-warn;
+    }
+
+    &__list {
+        @apply flex min-w-0 flex-col gap-2;
+    }
+
+    &__subtitle {
+        @apply text-base font-bold text-content-primary;
+    }
+}
+
+.issue {
+    @apply flex flex-col gap-1.5 border border-surface-border px-3 py-2.5;
+
+    &__head {
+        @apply flex items-baseline justify-between gap-3 text-sm text-content-primary;
+    }
+
+    &__count {
+        @apply text-xl font-bold tabular-nums text-status-warn;
+    }
+
+    &__track {
+        @apply block h-1.5 bg-surface-base;
+    }
+
+    &__fill {
+        @apply block h-1.5;
+        background-color: var(--app-map-selected);
+    }
+
+    &__hint {
+        @apply text-xs text-content-muted;
+    }
+}
+
+.table-scroll {
+    @apply overflow-x-auto;
+}
+
+.review-table {
+    @apply w-full border-collapse text-sm;
+
+    th {
+        @apply border-b border-surface-border py-2 pr-3 text-left text-label font-medium uppercase tracking-[0.1em] text-content-muted !font-mono;
+    }
+
+    td {
+        @apply border-b border-surface-border py-2.5 pr-3 align-top text-content-secondary;
+    }
+
+    tbody tr:last-child td {
+        @apply border-b-0;
+    }
+
+    &__name {
+        @apply block font-semibold text-content-primary;
+
+        &--missing {
+            @apply font-normal italic text-content-muted;
+        }
+    }
+
+    &__category {
+        @apply block text-xs text-content-muted;
+    }
+
+    &__action {
+        @apply text-right;
+
+        a {
+            @apply font-semibold text-brand;
+
+            &:hover {
+                @apply underline underline-offset-2;
+            }
+        }
+    }
+}
+
+/* Link from the state panel to the filtered advertiser list */
+.state-panel__view {
+    @apply mt-1 flex min-h-[44px] items-center justify-between gap-2 border border-brand bg-brand-soft px-3 text-sm font-semibold text-content-primary transition-colors;
+
+    i {
+        @apply text-brand;
+    }
+
+    &:hover {
+        @apply bg-surface-hover;
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--app-brand);
+        outline-offset: 2px;
+    }
+}

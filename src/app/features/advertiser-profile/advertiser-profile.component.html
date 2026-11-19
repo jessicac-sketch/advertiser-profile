@@ -1,0 +1,634 @@
+<div class="page">
+    <app-page-header eyebrow="Advertisers" title="Advertiser Profile" [subtitle]="subtitle()">
+        <input
+            #fileInput
+            id="advertiser-import-file"
+            type="file"
+            accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            hidden
+            (change)="onFileChosen($event)" />
+        <ntv-button
+            class="match-input"
+            [loading]="isPreviewing()"
+            [disabled]="isImporting()"
+            (buttonClick)="fileInput.click()">
+            <i class="fa-sharp fa-regular fa-file-arrow-up" aria-hidden="true"></i>
+            Import from Excel
+        </ntv-button>
+    </app-page-header>
+
+    @if (result(); as r) {
+        <div class="advertisers__notice advertisers__notice--success" role="status">
+            <i class="fa-sharp fa-regular fa-circle-check" aria-hidden="true"></i>
+            <span>
+                Added {{ r.inserted }} {{ r.inserted === 1 ? 'advertiser' : 'advertisers' }}.
+                @if (r.flaggedForReview) {
+                    {{ r.flaggedForReview }} {{ r.flaggedForReview === 1 ? 'is' : 'are' }} marked
+                    Needs Attention.
+                }
+                @if (r.skippedDuplicates || r.skippedInvalid) {
+                    Skipped {{ r.skippedDuplicates }}
+                    {{ r.skippedDuplicates === 1 ? 'duplicate' : 'duplicates' }} and
+                    {{ r.skippedInvalid }} {{ r.skippedInvalid === 1 ? 'row' : 'rows' }} with
+                    problems.
+                }
+            </span>
+            <button
+                type="button"
+                class="advertisers__notice-dismiss"
+                aria-label="Dismiss"
+                (click)="result.set(null)">
+                ×
+            </button>
+        </div>
+    }
+
+    @if (importError(); as message) {
+        <div class="advertisers__notice advertisers__notice--error" role="alert">
+            <i class="fa-sharp fa-regular fa-circle-exclamation" aria-hidden="true"></i>
+            <span>{{ message }}</span>
+            <button
+                type="button"
+                class="advertisers__notice-dismiss"
+                aria-label="Dismiss"
+                (click)="importError.set(null)">
+                ×
+            </button>
+        </div>
+    }
+
+    <!-- Import preview: nothing is saved until "Import" is pressed -->
+    @if (preview(); as p) {
+        <section class="import" aria-labelledby="import-title">
+            <header class="import__header">
+                <div>
+                    <h2 id="import-title" class="import__title">Review import</h2>
+                    <p class="import__file">{{ importFile()?.name }}</p>
+                    <!-- Workbooks with several importable tabs: choose which one -->
+                    @if (p.sheets.length > 1) {
+                        <label class="import__sheet" for="advertiser-import-sheet">
+                            <span>Sheet</span>
+                            <select
+                                id="advertiser-import-sheet"
+                                class="import__sheet-select"
+                                [value]="p.sheetName"
+                                [disabled]="isPreviewing() || isImporting()"
+                                (change)="onSheetChange($event)">
+                                @for (sheet of p.sheets; track sheet.name) {
+                                    <option
+                                        [value]="sheet.name"
+                                        [selected]="sheet.name === p.sheetName">
+                                        {{ sheet.name }}
+                                    </option>
+                                }
+                            </select>
+                        </label>
+                    } @else {
+                        <p class="import__file">Sheet "{{ p.sheetName }}"</p>
+                    }
+                </div>
+                <!-- Filters: show only one kind of row; click again to show all -->
+                <div class="import__counts" role="group" aria-label="Show rows">
+                    <button
+                        type="button"
+                        class="import__count"
+                        [class.import__count--active]="rowFilter() === 'new'"
+                        [attr.aria-pressed]="rowFilter() === 'new'"
+                        (click)="toggleRowFilter('new')">
+                        <strong>{{ p.counts.new }}</strong> new
+                    </button>
+                    <button
+                        type="button"
+                        class="import__count"
+                        [class.import__count--active]="rowFilter() === 'duplicate'"
+                        [attr.aria-pressed]="rowFilter() === 'duplicate'"
+                        (click)="toggleRowFilter('duplicate')">
+                        <strong>{{ p.counts.duplicate }}</strong>
+                        {{ p.counts.duplicate === 1 ? 'duplicate' : 'duplicates' }}
+                    </button>
+                    <button
+                        type="button"
+                        class="import__count"
+                        [class.import__count--active]="rowFilter() === 'invalid'"
+                        [attr.aria-pressed]="rowFilter() === 'invalid'"
+                        (click)="toggleRowFilter('invalid')">
+                        <strong>{{ p.counts.invalid }}</strong>
+                        {{ p.counts.invalid === 1 ? 'problem' : 'problems' }}
+                    </button>
+                    @if (rowFilter()) {
+                        <button
+                            type="button"
+                            class="import__count import__count--clear"
+                            (click)="rowFilter.set(null)">
+                            Show all {{ p.rows.length }}
+                        </button>
+                    }
+                </div>
+            </header>
+
+            @if (missingColumns().length) {
+                <p class="import__hint">
+                    Not found in the sheet, so left empty: {{ missingColumns().join(', ') }}.
+                </p>
+            }
+            <p class="import__hint">
+                Only new rows are added. Duplicates (same business name and location) and rows with
+                problems are skipped.
+                @if (notedCount()) {
+                    {{ notedCount() }} {{ notedCount() === 1 ? 'row is' : 'rows are' }} imported
+                    with a change, explained under its status.
+                }
+            </p>
+
+            <div class="table-scroll table-scroll--preview">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Row</th>
+                            <th scope="col">Status</th>
+                            @for (column of previewColumns; track column.key) {
+                                <th scope="col">{{ column.label }}</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (row of visibleRows(); track row.rowNumber) {
+                            <tr [class.data-table__row--skipped]="row.status !== 'new'">
+                                <td class="data-table__num">{{ row.rowNumber }}</td>
+                                <td>
+                                    <span class="status status--{{ row.status }}">
+                                        {{ statusLabel(row.status) }}
+                                    </span>
+                                    @if (row.reason) {
+                                        <span class="status__reason">{{ row.reason }}</span>
+                                    }
+                                    @for (note of row.notes ?? []; track $index) {
+                                        <span class="status__note">{{ note }}</span>
+                                    }
+                                </td>
+                                @for (column of previewColumns; track column.key) {
+                                    @if (column.key === 'video_url') {
+                                        <td>
+                                            @if (row.data.video_url; as url) {
+                                                <a
+                                                    class="data-table__link"
+                                                    [href]="url"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    [attr.title]="url">
+                                                    {{ fileName(url) }}
+                                                </a>
+                                            }
+                                        </td>
+                                    } @else if (column.key === 'social_media') {
+                                        <td>
+                                            @for (url of row.data.social_media ?? []; track url) {
+                                                @let link = socialLink(url);
+                                                <span class="social-line">
+                                                    <app-social-badge [link]="link" />
+                                                    {{ link.platform }} · {{ link.handle }}
+                                                </span>
+                                            }
+                                        </td>
+                                    } @else {
+                                        <td>{{ row.data[column.key] ?? '' }}</td>
+                                    }
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <footer class="import__footer">
+                <!-- Extra rows to import anyway; they are tagged "Needs Attention" to fix later -->
+                @if (fileDuplicateCount() || p.counts.invalid) {
+                    <fieldset class="import__options">
+                        <legend class="import__options-title">Also import, to fix later</legend>
+                        @if (fileDuplicateCount()) {
+                            <label class="import__option" for="import-include-duplicates">
+                                <input
+                                    id="import-include-duplicates"
+                                    type="checkbox"
+                                    [checked]="includeDuplicates()"
+                                    [disabled]="isImporting()"
+                                    (change)="includeDuplicates.set($any($event.target).checked)" />
+                                <span>
+                                    <strong>{{ fileDuplicateCount() }}</strong>
+                                    {{ fileDuplicateCount() === 1 ? 'duplicate' : 'duplicates' }}
+                                    within this sheet
+                                </span>
+                            </label>
+                        }
+                        @if (p.counts.invalid) {
+                            <label class="import__option" for="import-include-invalid">
+                                <input
+                                    id="import-include-invalid"
+                                    type="checkbox"
+                                    [checked]="includeInvalid()"
+                                    [disabled]="isImporting()"
+                                    (change)="includeInvalid.set($any($event.target).checked)" />
+                                <span>
+                                    <strong>{{ p.counts.invalid }}</strong>
+                                    {{ p.counts.invalid === 1 ? 'row' : 'rows' }} with problems
+                                    (saved without a business name)
+                                </span>
+                            </label>
+                        }
+                        <p class="import__options-hint">
+                            They are tagged <strong>Needs Attention</strong> with what to fix.
+                            @if (savedDuplicateCount()) {
+                                {{ savedDuplicateCount() }}
+                                {{ savedDuplicateCount() === 1 ? 'row matches' : 'rows match' }}
+                                an advertiser already saved and
+                                {{ savedDuplicateCount() === 1 ? 'is' : 'are' }} always skipped.
+                            }
+                        </p>
+                    </fieldset>
+                }
+
+                <div class="import__actions">
+                    <ntv-button
+                        variant="outline"
+                        [disabled]="isImporting()"
+                        (buttonClick)="cancelImport()">
+                        Cancel
+                    </ntv-button>
+                    <ntv-button
+                        [loading]="isImporting()"
+                        [disabled]="importCount() === 0"
+                        (buttonClick)="onConfirmImport()">
+                        @if (importCount() === 0) {
+                            Nothing new to import
+                        } @else {
+                            Import {{ importCount() }}
+                            {{ importCount() === 1 ? 'advertiser' : 'advertisers' }}
+                        }
+                    </ntv-button>
+                </div>
+            </footer>
+        </section>
+    }
+
+    <!-- Saved advertisers: list or grid, 20 at a time with Show More -->
+    <section class="advertisers" aria-label="Advertisers">
+        @if (listError(); as message) {
+            <p class="advertisers__state advertisers__state--error">{{ message }}</p>
+        } @else if (advertisers() === null) {
+            <p class="advertisers__state">Loading advertisers…</p>
+        } @else if (total() === 0 && !hasFilters()) {
+            <div class="advertisers__state">
+                <i
+                    class="fa-sharp fa-regular fa-store advertisers__state-icon"
+                    aria-hidden="true"></i>
+                <p class="advertisers__state-title">No advertisers yet</p>
+                <p>
+                    Use <strong>Import from Excel</strong> to add them from a spreadsheet with the
+                    columns {{ columns[0].label }}, {{ columns[1].label }}, {{ columns[2].label }},
+                    {{ columns[3].label }}, {{ columns[4].label }} and {{ columns[5].label }}.
+                </p>
+            </div>
+        } @else {
+            <div class="advertisers__toolbar">
+                <!-- Filters: kept in the address (?search=&group=&state=&attention=true) -->
+                <div class="filters" role="search" aria-label="Filter advertisers">
+                    <label class="filters__search" for="advertiser-search">
+                        <i class="fa-sharp fa-regular fa-magnifying-glass" aria-hidden="true"></i>
+                        <span class="sr-only">Search</span>
+                        <input
+                            id="advertiser-search"
+                            type="search"
+                            class="filters__input"
+                            placeholder="Search name, category, location, phone, website…"
+                            [value]="searchText()"
+                            (input)="onSearchInput($any($event.target).value)" />
+                    </label>
+
+                    <label class="filters__field" for="advertiser-filter-group">
+                        <span class="sr-only">Category</span>
+                        <select
+                            id="advertiser-filter-group"
+                            class="filters__select"
+                            [class.filters__select--on]="!!filters().group"
+                            (change)="setFilter({ group: $any($event.target).value || undefined })">
+                            <option value="" [selected]="!filters().group">All categories</option>
+                            @for (option of groupOptions(); track option.name) {
+                                <option
+                                    [value]="option.name"
+                                    [selected]="filters().group === option.name">
+                                    {{ option.name }} ({{ option.count }})
+                                </option>
+                            }
+                        </select>
+                    </label>
+
+                    <label class="filters__field" for="advertiser-filter-state">
+                        <span class="sr-only">State</span>
+                        <select
+                            id="advertiser-filter-state"
+                            class="filters__select"
+                            [class.filters__select--on]="!!filters().state"
+                            (change)="setFilter({ state: $any($event.target).value || undefined })">
+                            <option value="" [selected]="!filters().state">All states</option>
+                            @for (option of stateOptions(); track option.code) {
+                                <option
+                                    [value]="option.code"
+                                    [selected]="filters().state === option.code">
+                                    {{ option.label }}
+                                </option>
+                            }
+                        </select>
+                    </label>
+
+                    <label class="filters__check" for="advertiser-filter-attention">
+                        <input
+                            id="advertiser-filter-attention"
+                            type="checkbox"
+                            [checked]="!!filters().attention"
+                            (change)="
+                                setFilter({ attention: $any($event.target).checked || undefined })
+                            " />
+                        Needs Attention only
+                    </label>
+
+                    @if (hasFilters()) {
+                        <button type="button" class="filters__clear" (click)="clearFilters()">
+                            Clear filters
+                        </button>
+                    }
+                </div>
+
+                <div class="view-switch" role="group" aria-label="View">
+                    <button
+                        type="button"
+                        class="view-switch__option"
+                        [class.view-switch__option--active]="view() === 'list'"
+                        [attr.aria-pressed]="view() === 'list'"
+                        (click)="setView('list')">
+                        <i class="fa-sharp fa-regular fa-list" aria-hidden="true"></i>
+                        List
+                    </button>
+                    <button
+                        type="button"
+                        class="view-switch__option"
+                        [class.view-switch__option--active]="view() === 'grid'"
+                        [attr.aria-pressed]="view() === 'grid'"
+                        (click)="setView('grid')">
+                        <i class="fa-sharp fa-regular fa-grid-2" aria-hidden="true"></i>
+                        Grid
+                    </button>
+                </div>
+            </div>
+
+            @if (total() === 0) {
+                <div class="advertisers__state">
+                    <p class="advertisers__state-title">No advertisers match these filters</p>
+                    <button type="button" class="filters__clear" (click)="clearFilters()">
+                        Clear filters
+                    </button>
+                </div>
+            } @else {
+                <div class="advertisers__body">
+                    @if (view() === 'list') {
+                        <div class="table-scroll">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        @for (column of columns; track column.key) {
+                                            <th scope="col">{{ column.label }}</th>
+                                        }
+                                        <th scope="col" class="data-table__actions-head">
+                                            Actions
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @for (advertiser of advertisers(); track advertiser.id) {
+                                        <tr>
+                                            <td class="data-table__name">
+                                                <a
+                                                    class="data-table__name-link"
+                                                    [class.data-table__name-link--missing]="
+                                                        !advertiser.business_name
+                                                    "
+                                                    [routerLink]="[
+                                                        '/advertiser-profile',
+                                                        advertiser.id,
+                                                    ]">
+                                                    {{
+                                                        advertiser.business_name ||
+                                                            'Unnamed business'
+                                                    }}
+                                                </a>
+                                                @if (advertiser.review_notes?.length) {
+                                                    <span
+                                                        class="review-badge"
+                                                        [attr.title]="reviewTitle(advertiser)">
+                                                        Needs Attention
+                                                    </span>
+                                                }
+                                            </td>
+                                            <td>{{ advertiser.location }}</td>
+                                            <td class="data-table__nowrap">
+                                                {{ advertiser.phone_number }}
+                                            </td>
+                                            <td>{{ advertiser.category }}</td>
+                                            <td>
+                                                <!-- One icon per account; the profile page lists them in full -->
+                                                <span class="social-icons">
+                                                    @for (
+                                                        url of advertiser.social_media ?? [];
+                                                        track url
+                                                    ) {
+                                                        @let link = socialLink(url);
+                                                        <a
+                                                            class="social-icons__link"
+                                                            [href]="link.url"
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            [attr.title]="
+                                                                link.platform + ': ' + link.handle
+                                                            "
+                                                            [attr.aria-label]="
+                                                                link.platform + ': ' + link.handle
+                                                            ">
+                                                            <app-social-badge [link]="link" />
+                                                        </a>
+                                                    }
+                                                </span>
+                                            </td>
+                                            <td class="data-table__website">
+                                                <!-- One line, cut off with "…"; the full address shows on hover -->
+                                                @if (advertiser.website; as url) {
+                                                    <a
+                                                        class="data-table__link data-table__truncate"
+                                                        [href]="url"
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        [attr.title]="url">
+                                                        {{ shortUrl(url) }}
+                                                    </a>
+                                                }
+                                            </td>
+                                            <td class="data-table__actions">
+                                                <ng-container
+                                                    *ngTemplateOutlet="
+                                                        rowActions;
+                                                        context: { $implicit: advertiser }
+                                                    " />
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    } @else {
+                        <ul class="advertiser-grid">
+                            @for (advertiser of advertisers(); track advertiser.id) {
+                                <li
+                                    class="advertiser-card"
+                                    [class.advertiser-card--attention]="
+                                        advertiser.review_notes?.length
+                                    ">
+                                    <div class="advertiser-card__head">
+                                        <a
+                                            class="advertiser-card__name"
+                                            [class.advertiser-card__name--missing]="
+                                                !advertiser.business_name
+                                            "
+                                            [routerLink]="['/advertiser-profile', advertiser.id]">
+                                            {{ advertiser.business_name || 'Unnamed business' }}
+                                        </a>
+                                        @if (advertiser.review_notes?.length) {
+                                            <span
+                                                class="review-badge review-badge--card"
+                                                [attr.title]="reviewTitle(advertiser)">
+                                                Needs Attention
+                                            </span>
+                                        }
+                                    </div>
+                                    @if (advertiser.category) {
+                                        <p class="advertiser-card__category">
+                                            {{ advertiser.category }}
+                                        </p>
+                                    }
+
+                                    <dl class="advertiser-card__facts">
+                                        @if (advertiser.location) {
+                                            <div class="advertiser-card__fact">
+                                                <dt>
+                                                    <i
+                                                        class="fa-sharp fa-regular fa-location-dot"
+                                                        aria-hidden="true"></i>
+                                                    <span class="sr-only">Location</span>
+                                                </dt>
+                                                <dd>{{ advertiser.location }}</dd>
+                                            </div>
+                                        }
+                                        @if (advertiser.phone_number) {
+                                            <div class="advertiser-card__fact">
+                                                <dt>
+                                                    <i
+                                                        class="fa-sharp fa-regular fa-phone"
+                                                        aria-hidden="true"></i>
+                                                    <span class="sr-only">Phone</span>
+                                                </dt>
+                                                <dd>{{ advertiser.phone_number }}</dd>
+                                            </div>
+                                        }
+                                        @if (advertiser.website; as url) {
+                                            <div class="advertiser-card__fact">
+                                                <dt>
+                                                    <i
+                                                        class="fa-sharp fa-regular fa-globe"
+                                                        aria-hidden="true"></i>
+                                                    <span class="sr-only">Website</span>
+                                                </dt>
+                                                <dd>
+                                                    <a
+                                                        class="data-table__link data-table__truncate"
+                                                        [href]="url"
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        [attr.title]="url">
+                                                        {{ shortUrl(url) }}
+                                                    </a>
+                                                </dd>
+                                            </div>
+                                        }
+                                    </dl>
+
+                                    <div class="advertiser-card__foot">
+                                        <span class="social-icons">
+                                            @for (url of advertiser.social_media ?? []; track url) {
+                                                @let link = socialLink(url);
+                                                <a
+                                                    class="social-icons__link"
+                                                    [href]="link.url"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    [attr.title]="
+                                                        link.platform + ': ' + link.handle
+                                                    "
+                                                    [attr.aria-label]="
+                                                        link.platform + ': ' + link.handle
+                                                    ">
+                                                    <app-social-badge [link]="link" />
+                                                </a>
+                                            }
+                                        </span>
+                                        <ng-container
+                                            *ngTemplateOutlet="
+                                                rowActions;
+                                                context: { $implicit: advertiser }
+                                            " />
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+
+                <app-show-more
+                    [shown]="advertisers()!.length"
+                    [total]="total()"
+                    itemLabel="advertisers"
+                    [loading]="isLoadingMore()"
+                    (showMore)="showMore()" />
+            }
+        }
+    </section>
+</div>
+
+<!-- Row actions (list and grid): View opens the profile; Edit and Delete come later -->
+<ng-template #rowActions let-advertiser>
+    <div class="row-actions">
+        <a
+            class="row-actions__button"
+            [routerLink]="['/advertiser-profile', advertiser.id]"
+            title="View profile"
+            [attr.aria-label]="'View ' + (advertiser.business_name || 'unnamed business')">
+            <i class="fa-sharp fa-regular fa-eye" aria-hidden="true"></i>
+        </a>
+        <button
+            type="button"
+            class="row-actions__button"
+            disabled
+            title="Edit (coming soon)"
+            [attr.aria-label]="
+                'Edit ' + (advertiser.business_name || 'unnamed business') + ' (coming soon)'
+            ">
+            <i class="fa-sharp fa-regular fa-pen" aria-hidden="true"></i>
+        </button>
+        <button
+            type="button"
+            class="row-actions__button row-actions__button--danger"
+            disabled
+            title="Delete (coming soon)"
+            [attr.aria-label]="
+                'Delete ' + (advertiser.business_name || 'unnamed business') + ' (coming soon)'
+            ">
+            <i class="fa-sharp fa-regular fa-trash" aria-hidden="true"></i>
+        </button>
+    </div>
+</ng-template>

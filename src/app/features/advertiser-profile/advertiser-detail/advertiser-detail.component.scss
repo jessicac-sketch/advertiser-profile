@@ -1,0 +1,273 @@
+/* Uses the shared .page layout from styles.scss */
+
+.back-link {
+    @apply inline-flex w-fit items-center gap-2 text-sm text-content-secondary transition-colors;
+
+    &:hover {
+        @apply text-brand;
+    }
+}
+
+.detail-state {
+    @apply border border-surface-border bg-surface-raised px-6 py-14 text-center text-sm text-content-muted;
+
+    &--error {
+        @apply text-status-crit;
+    }
+}
+
+/* Tag in the page header */
+.attention-tag {
+    @apply inline-flex items-center gap-2 border border-status-warn px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-status-warn !font-mono;
+}
+
+/* ---- Needs Attention ----------------------------------------------------- */
+
+.attention {
+    @apply flex flex-col gap-4 border border-status-warn p-5;
+    background-color: color-mix(in srgb, var(--app-status-warn) 7%, var(--app-surface-raised));
+
+    &__header {
+        @apply flex flex-col gap-1;
+    }
+
+    &__title {
+        @apply flex items-center gap-2 text-base font-bold text-status-warn;
+    }
+
+    &__summary {
+        @apply text-sm text-content-secondary;
+    }
+
+    &__list {
+        @apply flex flex-col gap-3;
+    }
+}
+
+/* One reason, explained */
+.issue {
+    @apply flex gap-3 border border-surface-border bg-surface-raised p-4;
+
+    &__icon {
+        @apply flex h-9 w-9 shrink-0 items-center justify-center text-sm text-status-warn;
+        background-color: color-mix(in srgb, var(--app-status-warn) 14%, transparent);
+    }
+
+    &__body {
+        @apply flex min-w-0 flex-col gap-1;
+    }
+
+    &__title {
+        @apply text-sm font-semibold text-content-primary;
+    }
+
+    &__text {
+        @apply text-sm text-content-secondary;
+        overflow-wrap: anywhere;
+    }
+
+    &__action {
+        @apply text-sm text-content-primary;
+
+        strong {
+            @apply font-semibold;
+        }
+    }
+}
+
+/* Profiles with the same name and location */
+.matches {
+    @apply flex flex-col gap-2;
+
+    &__title {
+        @apply flex items-center gap-2 text-label font-semibold uppercase tracking-[0.14em] text-content-muted !font-mono;
+    }
+
+    &__list {
+        @apply flex flex-col gap-2;
+    }
+}
+
+.match {
+    @apply grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-0.5 border border-surface-border bg-surface-raised px-4 py-2.5 transition-colors;
+
+    /* Links: the arrow on the right spans both lines */
+    &:is(a) {
+        &:hover {
+            @apply border-brand;
+        }
+
+        &:hover .match__open {
+            @apply text-brand;
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--app-brand);
+            outline-offset: 2px;
+        }
+    }
+
+    &--current {
+        @apply border-dashed;
+    }
+
+    &--empty {
+        @apply block text-sm text-content-muted;
+    }
+
+    &__name {
+        @apply col-start-1 flex flex-wrap items-center gap-2 text-sm font-semibold text-content-primary;
+    }
+
+    &__meta {
+        @apply col-start-1 truncate text-xs text-content-muted;
+    }
+
+    &__this,
+    &__tag {
+        @apply border px-1.5 py-px text-micro font-semibold uppercase tracking-wide !font-mono;
+    }
+
+    &__this {
+        @apply border-surface-border text-content-muted;
+    }
+
+    &__tag {
+        @apply border-status-warn text-status-warn;
+    }
+
+    &__open {
+        @apply col-start-2 row-span-2 row-start-1 text-xs text-content-muted transition-colors;
+    }
+}
+
+/* ---- Details ------------------------------------------------------------- */
+
+.detail-grid {
+    @apply grid items-start gap-3 lg:grid-cols-2;
+}
+
+.detail-stack {
+    @apply flex min-w-0 flex-col gap-3;
+}
+
+.detail-card {
+    @apply flex min-w-0 flex-col gap-4 border border-surface-border bg-surface-raised p-5;
+
+    &__title {
+        @apply flex items-center gap-2 text-label font-semibold uppercase tracking-[0.14em] text-content-muted !font-mono;
+    }
+
+    &__count {
+        @apply border border-surface-border px-1.5 tabular-nums text-content-secondary;
+    }
+
+    &__empty {
+        @apply text-sm text-content-muted;
+    }
+}
+
+/* The advertiser's video */
+.video {
+    @apply block aspect-video w-full max-w-full bg-black;
+
+    &--failed {
+        @apply flex flex-col items-center justify-center gap-2 border border-surface-border bg-surface-base p-6 text-center text-sm text-content-muted;
+
+        i {
+            @apply text-2xl;
+        }
+    }
+
+    &__link {
+        @apply min-w-0 text-sm;
+    }
+
+    &__file {
+        @apply min-w-0 truncate;
+    }
+}
+
+/* Business details: label / value rows */
+.facts {
+    @apply flex flex-col;
+
+    &__row {
+        @apply grid grid-cols-[7.5rem_minmax(0,1fr)] gap-3 border-b border-surface-border py-3;
+
+        &:first-child {
+            @apply pt-0;
+        }
+
+        &:last-child {
+            @apply border-b-0 pb-0;
+        }
+    }
+
+    dt {
+        @apply text-sm text-content-muted;
+    }
+
+    dd {
+        @apply text-sm text-content-primary;
+        overflow-wrap: anywhere;
+    }
+
+    &__missing {
+        @apply italic text-status-warn;
+    }
+
+    &__link {
+        @apply inline-flex max-w-full items-center gap-1.5 text-brand underline decoration-transparent underline-offset-2;
+
+        &:hover {
+            @apply decoration-current;
+        }
+
+        i {
+            @apply shrink-0 text-xs;
+        }
+    }
+}
+
+/* Social media: one row per account */
+.socials {
+    @apply flex flex-col gap-2;
+
+    &__item {
+        @apply flex items-center gap-3 border border-surface-border px-3 py-2.5 transition-colors;
+
+        &:hover {
+            @apply border-brand bg-surface-hover;
+        }
+
+        &:hover .socials__open {
+            @apply text-brand;
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--app-brand);
+            outline-offset: 2px;
+        }
+    }
+
+    &__text {
+        @apply flex min-w-0 flex-1 flex-col;
+    }
+
+    &__platform {
+        @apply text-sm font-semibold text-content-primary;
+    }
+
+    &__handle {
+        @apply truncate text-sm text-content-muted;
+    }
+
+    &__open {
+        @apply shrink-0 text-xs text-content-muted transition-colors;
+    }
+}
+
+.detail-meta {
+    @apply text-xs text-content-muted;
+}

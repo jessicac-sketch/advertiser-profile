@@ -1,0 +1,13 @@
+:host {
+    @apply inline-flex shrink-0;
+}
+
+.social-badge {
+    @apply inline-flex h-6 w-6 select-none items-center justify-center text-[0.6875rem] font-bold leading-none text-white;
+    /* A thin light edge keeps black badges (X, TikTok) visible on dark surfaces */
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+
+    &--lg {
+        @apply h-10 w-10 text-sm;
+    }
+}

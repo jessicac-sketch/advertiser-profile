@@ -1,0 +1,60 @@
+<main class="login">
+    <button
+        type="button"
+        class="login__theme-toggle"
+        [attr.aria-label]="isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
+        [attr.title]="isDark() ? 'Light mode' : 'Dark mode'"
+        (click)="themeService.toggle()">
+        <i
+            class="fa-sharp fa-regular"
+            [class.fa-moon]="!isDark()"
+            [class.fa-sun-bright]="isDark()"
+            aria-hidden="true"></i>
+    </button>
+
+    <section class="login__card">
+        <header class="login__header">
+            <app-brand size="lg" [caption]="caption" />
+            <div class="login__heading">
+                <h1 class="login__title">Sign in</h1>
+                <p class="login__subtitle">Use the demo account (see README.md).</p>
+            </div>
+        </header>
+
+        <form class="login__form" [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+            <ntv-input
+                id="login-email"
+                type="email"
+                label="Email"
+                placeholder="demo@example.com"
+                formControlName="email"
+                [error]="getEmailError()"
+                [variant]="getEmailError() ? 'error' : 'default'" />
+
+            <ntv-input
+                id="login-password"
+                type="password"
+                label="Password"
+                placeholder="Enter your password"
+                formControlName="password"
+                [error]="getPasswordError()"
+                [variant]="getPasswordError() ? 'error' : 'default'" />
+
+            <ntv-button type="submit" size="xxl" [fullWidth]="true" [loading]="isSubmitting()">
+                Sign in
+            </ntv-button>
+        </form>
+    </section>
+
+    <p class="login__foot">v{{ version }}</p>
+</main>
+
+@if (errorMessage(); as message) {
+    <ntv-toast
+        variant="error"
+        position="top-center"
+        data-testid="login-error"
+        [message]="message"
+        [duration]="5000"
+        (closed)="onToastClosed()" />
+}

@@ -1,0 +1,25 @@
+/* Matches ntv-table's footer: count on the left, Show More on the right */
+.show-more {
+    @apply flex min-h-[44px] flex-wrap items-center justify-between gap-3 border-t border-surface-border px-4 py-3;
+
+    &__summary {
+        @apply text-sm tabular-nums text-content-secondary;
+    }
+
+    &__button {
+        @apply flex items-center gap-2 border-0 bg-transparent p-0 text-sm font-medium text-content-primary transition-colors;
+
+        &:hover:not(:disabled) {
+            @apply text-brand;
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--app-brand);
+            outline-offset: 4px;
+        }
+
+        &:disabled {
+            @apply cursor-wait text-content-muted;
+        }
+    }
+}

@@ -1,0 +1,90 @@
+:host {
+    @apply block;
+}
+
+.choropleth {
+    @apply flex flex-col gap-3;
+
+    &__map {
+        @apply block h-auto w-full;
+        /* Reserve the map's shape while the outlines load */
+        aspect-ratio: 975 / 615;
+    }
+
+    &__error {
+        @apply flex items-center justify-center border border-dashed border-surface-border p-8 text-sm text-content-muted;
+        aspect-ratio: 975 / 615;
+    }
+
+    &__state {
+        cursor: pointer;
+        stroke: var(--app-map-stroke);
+        stroke-width: 1;
+        stroke-linejoin: round;
+        transition: opacity 0.12s;
+
+        &:hover {
+            opacity: 0.8;
+        }
+    }
+
+    /* Shades, light to dark (tokens in _theme.scss); 0 = no advertisers */
+    &__state--0 {
+        fill: var(--app-map-none);
+        background-color: var(--app-map-none);
+    }
+    &__state--1 {
+        fill: var(--app-map-1);
+        background-color: var(--app-map-1);
+    }
+    &__state--2 {
+        fill: var(--app-map-2);
+        background-color: var(--app-map-2);
+    }
+    &__state--3 {
+        fill: var(--app-map-3);
+        background-color: var(--app-map-3);
+    }
+    &__state--4 {
+        fill: var(--app-map-4);
+        background-color: var(--app-map-4);
+    }
+    &__state--5 {
+        fill: var(--app-map-5);
+        background-color: var(--app-map-5);
+    }
+
+    &__selected {
+        fill: none;
+        stroke: var(--app-map-selected);
+        stroke-width: 3.5;
+        stroke-linejoin: round;
+        pointer-events: none;
+    }
+
+    &__label {
+        fill: var(--app-map-on-light);
+        font-family: var(--app-font-mono);
+        font-size: 13px;
+        font-weight: 500;
+        text-anchor: middle;
+        dominant-baseline: middle;
+        pointer-events: none;
+
+        &--on-dark {
+            fill: var(--app-map-on-dark);
+        }
+    }
+
+    &__legend {
+        @apply flex flex-wrap items-center gap-x-4 gap-y-1 text-xs tabular-nums text-content-secondary;
+    }
+
+    &__legend-item {
+        @apply flex items-center gap-1.5;
+    }
+
+    &__swatch {
+        @apply inline-block h-3.5 w-3.5 border border-surface-border;
+    }
+}

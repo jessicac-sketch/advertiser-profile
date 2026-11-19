@@ -1,0 +1,1377 @@
+<div class="page">
+    <app-page-header eyebrow="Rankings" title="Ranking Data" [subtitle]="subtitle()">
+        <!-- One range for every tab, shared with the Dashboard and the top bar's totals -->
+        <app-range-controls [disabled]="isLoadingRawAds()" [allowAllTime]="true" />
+    </app-page-header>
+
+    <app-range-notice />
+
+    @if (analyticsLoadFailed() && !dashboardAnalytics()) {
+        <div class="ranking-data__error" data-testid="ranking-data-error">
+            <p>Failed to load ranking data. This is usually a transient connection issue.</p>
+            <button
+                type="button"
+                class="ranking-data__error-retry"
+                (click)="retryDashboardLoad()"
+                data-testid="ranking-data-retry">
+                Retry
+            </button>
+        </div>
+    }
+
+    <!-- Statistics Cards -->
+    @if (!analyticsLoadFailed()) {
+        <div class="ranking-data__stats ranking-data__stats--six">
+            <!-- Total rows in programmatic_ads - also acts as "clear filter" -->
+            <ntv-skeleton
+                variant="card"
+                width="100%"
+                height="92px"
+                [loading]="!dashboardAnalytics()">
+                <ntv-card
+                    skeleton-content
+                    [config]="statsCardConfig"
+                    class="ranking-data__stat-card ranking-data__stat-card--clickable"
+                    [class.ranking-data__stat-card--active]="
+                        rawAdsRange() === null && activeBucketFilter() === null
+                    "
+                    (click)="filterByStatCard('total')"
+                    data-testid="ranking-data-stat-total">
+                    <div class="stat-card">
+                        <p class="stat-card__label">Total Ads</p>
+                        <p class="stat-card__value">{{ totalPlayRecords | number }}</p>
+                    </div>
+                </ntv-card>
+            </ntv-skeleton>
+
+            <!-- Played and proof-of-play successfully sent -->
+            <ntv-skeleton
+                variant="card"
+                width="100%"
+                height="92px"
+                [loading]="!dashboardAnalytics()">
+                <ntv-card
+                    skeleton-content
+                    [config]="statsCardConfig"
+                    class="ranking-data__stat-card ranking-data__stat-card--clickable"
+                    [class.ranking-data__stat-card--active]="
+                        rawAdsRange() === null && activeBucketFilter() === 'successful'
+                    "
+                    (click)="filterByStatCard('successful')"
+                    data-testid="ranking-data-stat-successful">
+                    <div class="stat-card">
+                        <p class="stat-card__label">POP Successful</p>
+                        <p class="stat-card__value">{{ successfulPopCount | number }}</p>
+                    </div>
+                </ntv-card>
+            </ntv-skeleton>
+
+            <!-- POP duration 1-5 minutes -->
+            <ntv-skeleton
+                variant="card"
+                width="100%"
+                height="92px"
+                [loading]="!dashboardAnalytics()">
+                <ntv-card
+                    skeleton-content
+                    [config]="statsCardConfig"
+                    class="ranking-data__stat-card ranking-data__stat-card--clickable"
+                    [class.ranking-data__stat-card--active]="
+                        rawAdsRange() === null && activeBucketFilter() === 'green'
+                    "
+                    (click)="toggleBucketFilter('green')"
+                    data-testid="ranking-data-stat-green">
+                    <div class="stat-card">
+                        <span class="stat-card__badge stat-card__badge--green">&lt;=5 min</span>
+                        <p class="stat-card__label">POP Very Good</p>
+                        <p class="stat-card__value">{{ greenCount | number }}</p>
+                    </div>
+                </ntv-card>
+            </ntv-skeleton>
+
+            <!-- POP duration 6-10 minutes -->
+            <ntv-skeleton
+                variant="card"
+                width="100%"
+                height="92px"
+                [loading]="!dashboardAnalytics()">
+                <ntv-card
+                    skeleton-content
+                    [config]="statsCardConfig"
+                    class="ranking-data__stat-card ranking-data__stat-card--clickable"
+                    [class.ranking-data__stat-card--active]="
+                        rawAdsRange() === null && activeBucketFilter() === 'yellow'
+                    "
+                    (click)="toggleBucketFilter('yellow')"
+                    data-testid="ranking-data-stat-yellow">
+                    <div class="stat-card">
+                        <span class="stat-card__badge stat-card__badge--yellow">&lt;=10 min</span>
+                        <p class="stat-card__label">POP Satisfactory</p>
+                        <p class="stat-card__value">{{ yellowCount | number }}</p>
+                    </div>
+                </ntv-card>
+            </ntv-skeleton>
+
+            <!-- POP duration over 10 minutes -->
+            <ntv-skeleton
+                variant="card"
+                width="100%"
+                height="92px"
+                [loading]="!dashboardAnalytics()">
+                <ntv-card
+                    skeleton-content
+                    [config]="statsCardConfig"
+                    class="ranking-data__stat-card ranking-data__stat-card--clickable"
+                    [class.ranking-data__stat-card--active]="
+                        rawAdsRange() === null && activeBucketFilter() === 'red'
+                    "
+                    (click)="toggleBucketFilter('red')"
+                    data-testid="ranking-data-stat-red">
+                    <div class="stat-card">
+                        <span class="stat-card__badge stat-card__badge--red">&lt;=15 min</span>
+                        <p class="stat-card__label">POP Risky</p>
+                        <p class="stat-card__value">{{ redCount | number }}</p>
+                    </div>
+                </ntv-card>
+            </ntv-skeleton>
+
+            <!-- Fetched over 5 minutes ago, still no proof-of-play sent -->
+            <ntv-skeleton
+                variant="card"
+                width="100%"
+                height="92px"
+                [loading]="!dashboardAnalytics()">
+                <ntv-card
+                    skeleton-content
+                    [config]="statsCardConfig"
+                    class="ranking-data__stat-card ranking-data__stat-card--clickable"
+                    [class.ranking-data__stat-card--active]="
+                        rawAdsRange() === null && activeBucketFilter() === 'overdue'
+                    "
+                    (click)="filterByStatCard('overdue')"
+                    data-testid="ranking-data-stat-overdue">
+                    <div class="stat-card">
+                        <span class="stat-card__badge stat-card__badge--gray">&gt;15 min</span>
+                        <p class="stat-card__label">Overdue</p>
+                        <p class="stat-card__value">{{ pendingOverdueCount | number }}</p>
+                    </div>
+                </ntv-card>
+            </ntv-skeleton>
+        </div>
+    }
+
+    <!-- Programmatic Contents Table -->
+    <!-- Each tab's table drives its own loading state via ntv-table's built-in
+         loading overlay (showLoadingOverlay()/hideLoadingOverlay()), not a
+         skeleton - keeps the tabs and other tabs' content interactive/visible
+         while any one tab's data is (re)loading. -->
+    <div class="ranking-data__table">
+        <ntv-card [config]="statsCardConfig">
+            <div class="ranking-data__table-content">
+                <!-- Tabs, with the active tab's export button at the right end of the row -->
+                <div class="ranking-data__tabs-bar">
+                    <ntv-tabs
+                        [tabs]="tabs"
+                        [activeIndex]="activeTabIndex"
+                        (tabChange)="activeTabIndex = $event"
+                        class="ranking-data__tabs" />
+
+                    <div class="ranking-data__tabs-actions">
+                        @switch (activeTabIndex) {
+                            @case (0) {
+                                <app-export-button
+                                    [disabled]="!canExportRawAds()"
+                                    [disabledReason]="exportDisabledReason()"
+                                    [exporting]="isExporting()"
+                                    (formatSelected)="exportProgrammaticAds($event)" />
+                            }
+                            @case (1) {
+                                <app-export-button
+                                    [disabled]="!canExportAdRanking()"
+                                    [disabledReason]="adRankingExportDisabledReason()"
+                                    [exporting]="isExportingAdRanking()"
+                                    (formatSelected)="exportAdRanking($event)" />
+                            }
+                            @case (2) {
+                                <app-export-button
+                                    [disabled]="!canExportVenueRanking()"
+                                    [disabledReason]="venueRankingExportDisabledReason()"
+                                    [exporting]="isExportingVenueRanking()"
+                                    (formatSelected)="exportVenueRanking($event)" />
+                            }
+                            @case (3) {
+                                <app-export-button
+                                    [disabled]="!canExportStateRanking()"
+                                    [disabledReason]="stateRankingExportDisabledReason()"
+                                    [exporting]="isExportingStateRanking()"
+                                    (formatSelected)="exportStateRanking($event)" />
+                            }
+                            @case (4) {
+                                <app-export-button
+                                    [disabled]="!canExportCategoryRanking()"
+                                    [disabledReason]="categoryRankingExportDisabledReason()"
+                                    [exporting]="isExportingCategoryRanking()"
+                                    (formatSelected)="exportCategoryRanking($event)" />
+                            }
+                        }
+                    </div>
+                </div>
+
+                @switch (activeTabIndex) {
+                    <!-- Received Playables Tab (raw programmatic_ads rows) -->
+                    @case (0) {
+                        <ntv-skeleton
+                            variant="card"
+                            width="100%"
+                            height="575px"
+                            [loading]="!hasLoadedRawAdsOnce()">
+                            <div skeleton-content>
+                                <ntv-table
+                                    #rawAdsTable
+                                    [columns]="rawAdsColumns"
+                                    [data]="rawAdsData()"
+                                    [totalDataLength]="rawAdsTotalCount()"
+                                    (showMoreRequested)="loadMoreRawAds()"
+                                    (tableStateChange)="onRawAdsStateChange($event)"
+                                    [tableTitle]="''"
+                                    [filterEnabled]="true"
+                                    [columnDraggable]="true"
+                                    [hasIndex]="true"
+                                    [showItemCount]="true"
+                                    [showColumnSettings]="false"
+                                    [loadingOverlayEnabled]="true"
+                                    [tableHeight]="'575px'"
+                                    [defaultMinWidth]="100"
+                                    [hasCheckBox]="false"
+                                    storageKey="dashboard-raw-ads-columns-v2"
+                                    data-testid="ranking-data-raw-ads-table">
+                                    <ng-template
+                                        #body
+                                        let-rowData
+                                        let-columns="columns"
+                                        let-hasIndex="hasIndex"
+                                        let-rowIndex="rowIndex">
+                                        <tr
+                                            class="pop-row"
+                                            [style.--pop-row-color]="popDurationRowColor(rowData)">
+                                            @if (hasIndex) {
+                                                <td class="index-column">{{ rowIndex }}</td>
+                                            }
+                                            @for (col of columns; track col.field) {
+                                                <td>
+                                                    @if (col.field === 'creative') {
+                                                        @if (rowData['mediaUrl']) {
+                                                            @if (
+                                                                rowData['creativeType'] === 'video'
+                                                            ) {
+                                                                <video
+                                                                    [src]="rowData['mediaUrl']"
+                                                                    muted
+                                                                    playsinline
+                                                                    preload="metadata"
+                                                                    class="creative-thumbnail creative-thumbnail--clickable"
+                                                                    (click)="
+                                                                        openMedia(
+                                                                            $event,
+                                                                            rowData['mediaUrl']
+                                                                        )
+                                                                    "></video>
+                                                            } @else {
+                                                                <img
+                                                                    [src]="rowData['mediaUrl']"
+                                                                    [alt]="rowData['creativeId']"
+                                                                    class="creative-thumbnail creative-thumbnail--clickable"
+                                                                    (click)="
+                                                                        openMedia(
+                                                                            $event,
+                                                                            rowData['mediaUrl']
+                                                                        )
+                                                                    " />
+                                                            }
+                                                        } @else {
+                                                            <div
+                                                                class="creative-thumbnail creative-thumbnail--placeholder"></div>
+                                                        }
+                                                    } @else if (col.field === 'screenshot') {
+                                                        @if (rowData['popScreenshot']) {
+                                                            <img
+                                                                [src]="rowData['popScreenshot']"
+                                                                [alt]="'Proof of play screenshot'"
+                                                                class="creative-thumbnail creative-thumbnail--clickable"
+                                                                (click)="
+                                                                    openMedia(
+                                                                        $event,
+                                                                        rowData['popScreenshot']
+                                                                    )
+                                                                " />
+                                                        } @else {
+                                                            <!-- No screenshot yet: "--" in a thumbnail-sized box,
+                                                                 so the column stays aligned -->
+                                                            <div
+                                                                class="creative-thumbnail creative-thumbnail--empty"
+                                                                title="No screenshot yet">
+                                                                --
+                                                            </div>
+                                                        }
+                                                    } @else if (
+                                                        col.field === 'creativeId' ||
+                                                        col.field === 'creativeSource'
+                                                    ) {
+                                                        <span class="cell-with-copy">
+                                                            <span>{{
+                                                                truncate(rowData[col.field])
+                                                            }}</span>
+                                                            <app-copy-button
+                                                                [value]="rowData[col.field]" />
+                                                        </span>
+                                                    } @else if (col.field === 'venueId') {
+                                                        @if (rowData[col.field]) {
+                                                            <span class="cell-with-copy">
+                                                                <a
+                                                                    class="table-cell-link"
+                                                                    [routerLink]="[
+                                                                        '/venue',
+                                                                        rowData[col.field],
+                                                                    ]">
+                                                                    {{
+                                                                        truncate(rowData[col.field])
+                                                                    }}
+                                                                </a>
+                                                                <app-copy-button
+                                                                    [value]="rowData[col.field]" />
+                                                            </span>
+                                                        } @else {
+                                                            <span>--</span>
+                                                        }
+                                                    } @else if (col.field === 'trackerId') {
+                                                        @if (rowData[col.field]) {
+                                                            <span class="cell-with-copy">
+                                                                <span>{{
+                                                                    truncate(rowData[col.field])
+                                                                }}</span>
+                                                                <app-copy-button
+                                                                    [value]="rowData[col.field]" />
+                                                            </span>
+                                                        } @else {
+                                                            <span>--</span>
+                                                        }
+                                                    } @else if (col.field === 'deviceId') {
+                                                        <span class="cell-with-copy">
+                                                            <span>{{
+                                                                truncate(rowData[col.field])
+                                                            }}</span>
+                                                            <app-copy-button
+                                                                [value]="rowData[col.field]" />
+                                                        </span>
+                                                    } @else if (
+                                                        col.field === 'fetchedAt' ||
+                                                        col.field === 'dateServed' ||
+                                                        col.field === 'proofOfPlaySent'
+                                                    ) {
+                                                        <span>{{
+                                                            timeDisplayService.formatTimestamp(
+                                                                rowData[col.field]
+                                                            )
+                                                        }}</span>
+                                                    } @else if (col.field === 'served') {
+                                                        <span>{{
+                                                            rowData[col.field] ? 'Yes' : 'No'
+                                                        }}</span>
+                                                    } @else if (
+                                                        col.field === 'popDurationMinutes'
+                                                    ) {
+                                                        <span>{{
+                                                            formatPopDuration(rowData)
+                                                        }}</span>
+                                                    } @else if (
+                                                        col.field === 'slotPlaylistContentId' ||
+                                                        col.field === 'slotPlaylistContentPosition'
+                                                    ) {
+                                                        <span>{{
+                                                            rowData[col.field] ?? 'N/A'
+                                                        }}</span>
+                                                    } @else {
+                                                        <span>{{ rowData[col.field] }}</span>
+                                                    }
+                                                </td>
+                                            }
+                                        </tr>
+                                    </ng-template>
+                                </ntv-table>
+                            </div>
+                        </ntv-skeleton>
+                    }
+
+                    <!-- Programmatic Ads Ranking Tab -->
+                    @case (1) {
+                        <ntv-skeleton
+                            variant="card"
+                            width="100%"
+                            height="575px"
+                            [loading]="!hasLoadedAdsRankingOnce()">
+                            <div skeleton-content>
+                                <ntv-table
+                                    #adsRankingTable
+                                    [columns]="tableColumns"
+                                    [data]="tableData()"
+                                    [totalDataLength]="filteredSortedAds().length"
+                                    (showMoreRequested)="showMoreTableData()"
+                                    (tableStateChange)="onAdRankingStateChange($event)"
+                                    [tableTitle]="''"
+                                    [filterEnabled]="true"
+                                    [columnDraggable]="true"
+                                    [hasIndex]="true"
+                                    [showItemCount]="true"
+                                    [showColumnSettings]="false"
+                                    [loadingOverlayEnabled]="true"
+                                    [tableHeight]="'575px'"
+                                    [defaultMinWidth]="100"
+                                    [hasCheckBox]="false"
+                                    storageKey="dashboard-ads-ranking-columns"
+                                    data-testid="ranking-data-ads-table">
+                                    <ng-template
+                                        #body
+                                        let-rowData
+                                        let-columns="columns"
+                                        let-hasIndex="hasIndex"
+                                        let-rowIndex="rowIndex">
+                                        <tr
+                                            class="table-row--clickable"
+                                            (click)="viewContent(rowData)"
+                                            role="button"
+                                            tabindex="0">
+                                            @if (hasIndex) {
+                                                <td class="index-column">{{ rowIndex }}</td>
+                                            }
+                                            @for (col of columns; track col.field) {
+                                                <td>
+                                                    @if (col.field === 'thumbnail') {
+                                                        @if (rowData['creativeType'] === 'video') {
+                                                            <video
+                                                                [src]="rowData['creativeUrl']"
+                                                                muted
+                                                                playsinline
+                                                                preload="metadata"
+                                                                class="creative-thumbnail creative-thumbnail--clickable"
+                                                                (click)="
+                                                                    openMedia(
+                                                                        $event,
+                                                                        rowData['creativeUrl']
+                                                                    )
+                                                                "></video>
+                                                        } @else {
+                                                            <img
+                                                                [src]="rowData['thumbnail']"
+                                                                [alt]="rowData['title']"
+                                                                class="creative-thumbnail creative-thumbnail--clickable"
+                                                                (click)="
+                                                                    openMedia(
+                                                                        $event,
+                                                                        rowData['thumbnail']
+                                                                    )
+                                                                " />
+                                                        }
+                                                    } @else if (
+                                                        col.field === 'plays' ||
+                                                        col.field === 'location'
+                                                    ) {
+                                                        <button
+                                                            type="button"
+                                                            class="table-cell-link"
+                                                            (click)="
+                                                                $event.stopPropagation();
+                                                                openAdLocationsModal(rowData)
+                                                            ">
+                                                            {{
+                                                                col.field === 'plays'
+                                                                    ? (rowData[col.field] | number)
+                                                                    : rowData[col.field]
+                                                            }}
+                                                        </button>
+                                                    } @else if (
+                                                        col.field === 'contentId' ||
+                                                        col.field === 'title' ||
+                                                        col.field === 'source'
+                                                    ) {
+                                                        <span class="cell-with-copy">
+                                                            <span>{{
+                                                                truncate(rowData[col.field])
+                                                            }}</span>
+                                                            <app-copy-button
+                                                                [value]="rowData[col.field]" />
+                                                        </span>
+                                                    } @else if (col.field === 'fetchedDate') {
+                                                        <span>{{
+                                                            timeDisplayService.formatTimestamp(
+                                                                rowData[col.field]
+                                                            )
+                                                        }}</span>
+                                                    } @else {
+                                                        <span>{{ rowData[col.field] }}</span>
+                                                    }
+                                                </td>
+                                            }
+                                        </tr>
+                                    </ng-template>
+                                </ntv-table>
+                            </div>
+                        </ntv-skeleton>
+                    }
+
+                    <!-- Venue Ranking Tab -->
+                    @case (2) {
+                        <ntv-skeleton
+                            variant="card"
+                            width="100%"
+                            height="575px"
+                            [loading]="!hasLoadedVenueRankingOnce()">
+                            <div skeleton-content>
+                                <ntv-table
+                                    #venueRankingTable
+                                    [columns]="hostRankingColumns"
+                                    [data]="hostRankingTableData()"
+                                    [totalDataLength]="filteredSortedHostRanking().length"
+                                    (showMoreRequested)="showMoreHostRanking()"
+                                    (tableStateChange)="onVenueRankingStateChange($event)"
+                                    [tableTitle]="''"
+                                    [filterEnabled]="true"
+                                    [columnDraggable]="true"
+                                    [loadingOverlayEnabled]="true"
+                                    [hasIndex]="true"
+                                    [showItemCount]="true"
+                                    [showColumnSettings]="false"
+                                    [tableHeight]="'575px'"
+                                    [defaultMinWidth]="100"
+                                    [hasCheckBox]="false"
+                                    storageKey="dashboard-host-ranking-columns"
+                                    data-testid="ranking-data-host-ranking-table">
+                                    <ng-template
+                                        #body
+                                        let-rowData
+                                        let-columns="columns"
+                                        let-hasIndex="hasIndex"
+                                        let-rowIndex="rowIndex">
+                                        <tr>
+                                            @if (hasIndex) {
+                                                <td class="index-column">{{ rowIndex }}</td>
+                                            }
+                                            @for (col of columns; track col.field) {
+                                                <td>
+                                                    @if (col.field === 'screenshotUrl') {
+                                                        @if (rowData['screenshotUrl']) {
+                                                            <img
+                                                                [src]="rowData['screenshotUrl']"
+                                                                [alt]="'Proof of play screenshot'"
+                                                                class="creative-thumbnail creative-thumbnail--clickable"
+                                                                (click)="
+                                                                    openMedia(
+                                                                        $event,
+                                                                        rowData['screenshotUrl']
+                                                                    )
+                                                                " />
+                                                        } @else {
+                                                            <span>--</span>
+                                                        }
+                                                    } @else if (col.field === 'venueId') {
+                                                        <span class="cell-with-copy">
+                                                            <a
+                                                                class="table-cell-link"
+                                                                [routerLink]="[
+                                                                    '/venue',
+                                                                    rowData[col.field],
+                                                                ]">
+                                                                {{ truncate(rowData[col.field]) }}
+                                                            </a>
+                                                            <app-copy-button
+                                                                [value]="rowData[col.field]" />
+                                                        </span>
+                                                    } @else if (col.field === 'hostName') {
+                                                        <span class="cell-with-copy">
+                                                            <span>{{
+                                                                truncate(rowData[col.field])
+                                                            }}</span>
+                                                            <app-copy-button
+                                                                [value]="rowData[col.field]" />
+                                                        </span>
+                                                    } @else if (col.field === 'totalAds') {
+                                                        <button
+                                                            type="button"
+                                                            class="table-cell-link"
+                                                            (click)="
+                                                                openVenueAdsModalForVenue(rowData)
+                                                            ">
+                                                            {{ rowData[col.field] | number }}
+                                                        </button>
+                                                    } @else if (col.field === 'expectedRequests') {
+                                                        <span>{{
+                                                            rowData[col.field] | number
+                                                        }}</span>
+                                                    } @else if (
+                                                        col.field === 'businessHoursSchedule'
+                                                    ) {
+                                                        <span
+                                                            class="schedule-cell"
+                                                            (mouseenter)="
+                                                                onScheduleHover($event, rowData)
+                                                            "
+                                                            (mouseleave)="onScheduleLeave()">
+                                                            {{
+                                                                rowData['businessHoursSchedule'] ??
+                                                                    '--'
+                                                            }}
+                                                        </span>
+                                                    } @else {
+                                                        <span>{{
+                                                            rowData[col.field] ?? '--'
+                                                        }}</span>
+                                                    }
+                                                </td>
+                                            }
+                                        </tr>
+                                    </ng-template>
+                                </ntv-table>
+                            </div>
+                        </ntv-skeleton>
+                    }
+
+                    <!-- State Ranking Tab -->
+                    @case (3) {
+                        <ntv-skeleton
+                            variant="card"
+                            width="100%"
+                            height="575px"
+                            [loading]="!hasLoadedStateRankingOnce()">
+                            <div skeleton-content>
+                                <ntv-table
+                                    #stateRankingTable
+                                    [columns]="stateRankingColumns"
+                                    [data]="stateRankingTableData()"
+                                    [totalDataLength]="filteredSortedStateRanking().length"
+                                    (showMoreRequested)="showMoreStateRanking()"
+                                    (tableStateChange)="onStateRankingStateChange($event)"
+                                    [tableTitle]="''"
+                                    [filterEnabled]="true"
+                                    [columnDraggable]="true"
+                                    [loadingOverlayEnabled]="true"
+                                    [hasIndex]="true"
+                                    [showItemCount]="true"
+                                    [showColumnSettings]="false"
+                                    [tableHeight]="'575px'"
+                                    [defaultMinWidth]="100"
+                                    [hasCheckBox]="false"
+                                    storageKey="dashboard-state-ranking-columns"
+                                    data-testid="ranking-data-state-ranking-table">
+                                    <ng-template
+                                        #body
+                                        let-rowData
+                                        let-columns="columns"
+                                        let-hasIndex="hasIndex"
+                                        let-rowIndex="rowIndex">
+                                        <tr>
+                                            @if (hasIndex) {
+                                                <td class="index-column">{{ rowIndex }}</td>
+                                            }
+                                            @for (col of columns; track col.field) {
+                                                <td>
+                                                    @if (col.field === 'totalAds') {
+                                                        <button
+                                                            type="button"
+                                                            class="table-cell-link"
+                                                            (click)="
+                                                                openStateAdsRecordsModal(rowData)
+                                                            ">
+                                                            {{ rowData[col.field] | number }}
+                                                        </button>
+                                                    } @else if (col.field === 'uniqueAdsPlayed') {
+                                                        <button
+                                                            type="button"
+                                                            class="table-cell-link"
+                                                            (click)="openStateAdsModal(rowData)">
+                                                            {{ rowData[col.field] | number }}
+                                                        </button>
+                                                    } @else if (col.field === 'venueCount') {
+                                                        <button
+                                                            type="button"
+                                                            class="table-cell-link"
+                                                            (click)="openStateVenuesModal(rowData)">
+                                                            {{ rowData[col.field] | number }}
+                                                        </button>
+                                                    } @else {
+                                                        <span>{{
+                                                            rowData[col.field] ?? '--'
+                                                        }}</span>
+                                                    }
+                                                </td>
+                                            }
+                                        </tr>
+                                    </ng-template>
+                                </ntv-table>
+                            </div>
+                        </ntv-skeleton>
+                    }
+
+                    <!-- Category Ranking Tab -->
+                    @case (4) {
+                        <ntv-skeleton
+                            variant="card"
+                            width="100%"
+                            height="575px"
+                            [loading]="!hasLoadedCategoryRankingOnce()">
+                            <div skeleton-content>
+                                <ntv-table
+                                    #categoryRankingTable
+                                    [columns]="categoryRankingColumns"
+                                    [data]="categoryRankingTableData()"
+                                    [totalDataLength]="filteredSortedCategoryRanking().length"
+                                    (showMoreRequested)="showMoreCategoryRanking()"
+                                    (tableStateChange)="onCategoryRankingStateChange($event)"
+                                    [tableTitle]="''"
+                                    [filterEnabled]="true"
+                                    [columnDraggable]="true"
+                                    [loadingOverlayEnabled]="true"
+                                    [hasIndex]="true"
+                                    [showItemCount]="true"
+                                    [showColumnSettings]="false"
+                                    [tableHeight]="'575px'"
+                                    [defaultMinWidth]="100"
+                                    [hasCheckBox]="false"
+                                    storageKey="dashboard-category-ranking-columns"
+                                    data-testid="ranking-data-category-ranking-table">
+                                    <ng-template
+                                        #body
+                                        let-rowData
+                                        let-columns="columns"
+                                        let-hasIndex="hasIndex"
+                                        let-rowIndex="rowIndex">
+                                        <tr>
+                                            @if (hasIndex) {
+                                                <td class="index-column">{{ rowIndex }}</td>
+                                            }
+                                            @for (col of columns; track col.field) {
+                                                <td>
+                                                    @if (col.field === 'totalAds') {
+                                                        <button
+                                                            type="button"
+                                                            class="table-cell-link"
+                                                            (click)="
+                                                                openCategoryAdsRecordsModal(rowData)
+                                                            ">
+                                                            {{ rowData[col.field] | number }}
+                                                        </button>
+                                                    } @else if (col.field === 'uniqueAdsPlayed') {
+                                                        <button
+                                                            type="button"
+                                                            class="table-cell-link"
+                                                            (click)="openCategoryAdsModal(rowData)">
+                                                            {{ rowData[col.field] | number }}
+                                                        </button>
+                                                    } @else if (col.field === 'venueCount') {
+                                                        <button
+                                                            type="button"
+                                                            class="table-cell-link"
+                                                            (click)="
+                                                                openCategoryVenuesModal(rowData)
+                                                            ">
+                                                            {{ rowData[col.field] | number }}
+                                                        </button>
+                                                    } @else {
+                                                        <span>{{
+                                                            rowData[col.field] ?? '--'
+                                                        }}</span>
+                                                    }
+                                                </td>
+                                            }
+                                        </tr>
+                                    </ng-template>
+                                </ntv-table>
+                            </div>
+                        </ntv-skeleton>
+                    }
+                }
+            </div>
+        </ntv-card>
+    </div>
+
+    @if (scheduleTooltip(); as tooltip) {
+        <div
+            class="schedule-tooltip"
+            role="tooltip"
+            [style.top.px]="tooltip.top"
+            [style.left.px]="tooltip.left">
+            @for (entry of tooltip.schedule; track entry.day) {
+                <div class="schedule-tooltip__row">
+                    <span class="schedule-tooltip__day">{{ entry.day }}</span>
+                    <span class="schedule-tooltip__hours">{{ entry.hours }}</span>
+                </div>
+            }
+        </div>
+    }
+
+    @if (venueAdsModalTitle(); as title) {
+        <app-drill-down-modal
+            [title]="title"
+            [subtitle]="(venueAdsModalTotalCount() | number) + ' ads'"
+            (closed)="closeVenueAdsModal()">
+            @if (venueAdsModalStats(); as stats) {
+                <div class="ranking-data__mini-stats venue-ads-modal__stats">
+                    <button
+                        type="button"
+                        class="ranking-data__mini-stat"
+                        [class.ranking-data__mini-stat--active]="
+                            activeVenueAdsModalBucketFilter() === null
+                        "
+                        (click)="clearVenueAdsModalBucketFilter()"
+                        data-testid="venue-ads-modal-stat-total">
+                        <span class="ranking-data__mini-stat-label">Total:</span>
+                        <span class="ranking-data__mini-stat-value">{{
+                            stats.total | number
+                        }}</span>
+                    </button>
+                    <span class="ranking-data__mini-stat-separator">/</span>
+                    <button
+                        type="button"
+                        class="ranking-data__mini-stat"
+                        [class.ranking-data__mini-stat--active]="
+                            activeVenueAdsModalBucketFilter() === 'green'
+                        "
+                        (click)="toggleVenueAdsModalBucketFilter('green')"
+                        data-testid="venue-ads-modal-stat-green">
+                        <span
+                            class="ranking-data__mini-stat-swatch ranking-data__mini-stat-swatch--green"></span>
+                        <span class="ranking-data__mini-stat-value">{{
+                            stats.green | number
+                        }}</span>
+                    </button>
+                    <span class="ranking-data__mini-stat-separator">/</span>
+                    <button
+                        type="button"
+                        class="ranking-data__mini-stat"
+                        [class.ranking-data__mini-stat--active]="
+                            activeVenueAdsModalBucketFilter() === 'yellow'
+                        "
+                        (click)="toggleVenueAdsModalBucketFilter('yellow')"
+                        data-testid="venue-ads-modal-stat-yellow">
+                        <span
+                            class="ranking-data__mini-stat-swatch ranking-data__mini-stat-swatch--yellow"></span>
+                        <span class="ranking-data__mini-stat-value">{{
+                            stats.yellow | number
+                        }}</span>
+                    </button>
+                    <span class="ranking-data__mini-stat-separator">/</span>
+                    <button
+                        type="button"
+                        class="ranking-data__mini-stat"
+                        [class.ranking-data__mini-stat--active]="
+                            activeVenueAdsModalBucketFilter() === 'red'
+                        "
+                        (click)="toggleVenueAdsModalBucketFilter('red')"
+                        data-testid="venue-ads-modal-stat-red">
+                        <span
+                            class="ranking-data__mini-stat-swatch ranking-data__mini-stat-swatch--red"></span>
+                        <span class="ranking-data__mini-stat-value">{{ stats.red | number }}</span>
+                    </button>
+                </div>
+            }
+
+            <ntv-skeleton
+                variant="card"
+                width="100%"
+                height="500px"
+                [loading]="isLoadingVenueAdsModal()">
+                <div skeleton-content>
+                    <ntv-table
+                        #venueAdsModalTable
+                        [columns]="venueAdsModalColumns"
+                        [data]="venueAdsModalData()"
+                        [totalDataLength]="venueAdsModalTotalCount()"
+                        (showMoreRequested)="loadMoreVenueAdsModal()"
+                        (tableStateChange)="onVenueAdsModalStateChange($event)"
+                        [tableTitle]="''"
+                        [filterEnabled]="true"
+                        [showItemCount]="true"
+                        [showColumnSettings]="false"
+                        [loadingOverlayEnabled]="true"
+                        [tableHeight]="'500px'"
+                        [defaultMinWidth]="100"
+                        [hasCheckBox]="false"
+                        storageKey="venue-ads-modal-columns-v2"
+                        data-testid="venue-ads-modal-table">
+                        <ng-template #body let-rowData let-columns="columns">
+                            <tr
+                                class="pop-row"
+                                [style.--pop-row-color]="popDurationRowColor(rowData)">
+                                @for (col of columns; track col.field) {
+                                    <td>
+                                        @if (col.field === 'creative') {
+                                            @if (rowData['mediaUrl']) {
+                                                @if (rowData['creativeType'] === 'video') {
+                                                    <video
+                                                        [src]="rowData['mediaUrl']"
+                                                        muted
+                                                        playsinline
+                                                        preload="metadata"
+                                                        class="creative-thumbnail creative-thumbnail--clickable"
+                                                        (click)="
+                                                            openMedia($event, rowData['mediaUrl'])
+                                                        "></video>
+                                                } @else {
+                                                    <img
+                                                        [src]="rowData['mediaUrl']"
+                                                        [alt]="rowData['creativeId']"
+                                                        class="creative-thumbnail creative-thumbnail--clickable"
+                                                        (click)="
+                                                            openMedia($event, rowData['mediaUrl'])
+                                                        " />
+                                                }
+                                            } @else {
+                                                <div
+                                                    class="creative-thumbnail creative-thumbnail--placeholder"></div>
+                                            }
+                                        } @else if (col.field === 'screenshot') {
+                                            @if (rowData['popScreenshot']) {
+                                                <img
+                                                    [src]="rowData['popScreenshot']"
+                                                    [alt]="'Proof of play screenshot'"
+                                                    class="creative-thumbnail creative-thumbnail--clickable"
+                                                    (click)="
+                                                        openMedia($event, rowData['popScreenshot'])
+                                                    " />
+                                            } @else {
+                                                <span>--</span>
+                                            }
+                                        } @else if (col.field === 'creativeId') {
+                                            <span class="cell-with-copy">
+                                                <span>{{ truncate(rowData[col.field]) }}</span>
+                                                <app-copy-button [value]="rowData[col.field]" />
+                                            </span>
+                                        } @else if (col.field === 'trackerId') {
+                                            @if (rowData[col.field]) {
+                                                <span class="cell-with-copy">
+                                                    <span>{{ truncate(rowData[col.field]) }}</span>
+                                                    <app-copy-button [value]="rowData[col.field]" />
+                                                </span>
+                                            } @else {
+                                                <span>--</span>
+                                            }
+                                        } @else if (col.field === 'deviceId') {
+                                            <span class="cell-with-copy">
+                                                <span>{{ truncate(rowData[col.field]) }}</span>
+                                                <app-copy-button [value]="rowData[col.field]" />
+                                            </span>
+                                        } @else if (
+                                            col.field === 'fetchedAt' ||
+                                            col.field === 'dateServed' ||
+                                            col.field === 'proofOfPlaySent'
+                                        ) {
+                                            <span>{{
+                                                timeDisplayService.formatTimestamp(
+                                                    rowData[col.field]
+                                                )
+                                            }}</span>
+                                        } @else if (col.field === 'served') {
+                                            <span>{{ rowData[col.field] ? 'Yes' : 'No' }}</span>
+                                        } @else if (col.field === 'popDurationMinutes') {
+                                            <span>{{ formatPopDuration(rowData) }}</span>
+                                        } @else {
+                                            <span>{{ rowData[col.field] }}</span>
+                                        }
+                                    </td>
+                                }
+                            </tr>
+                        </ng-template>
+                    </ntv-table>
+                </div>
+            </ntv-skeleton>
+        </app-drill-down-modal>
+    }
+
+    @if (selectedAdForLocationsModal(); as ad) {
+        <app-drill-down-modal
+            [title]="ad.title"
+            [subtitle]="
+                (ad.plays | number) +
+                ' plays across ' +
+                (adLocationsModalData().length | number) +
+                ' locations'
+            "
+            (closed)="closeAdLocationsModal()">
+            <ntv-skeleton
+                variant="card"
+                width="100%"
+                height="500px"
+                [loading]="isLoadingAdLocationsModal()">
+                <div skeleton-content>
+                    <ntv-table
+                        [columns]="adLocationsModalColumns"
+                        [data]="adLocationsModalData()"
+                        [tableTitle]="''"
+                        [filterEnabled]="false"
+                        [showItemCount]="true"
+                        [showColumnSettings]="false"
+                        [loadingOverlayEnabled]="true"
+                        [tableHeight]="'500px'"
+                        [defaultMinWidth]="100"
+                        [hasCheckBox]="false"
+                        storageKey="ad-locations-modal-columns"
+                        data-testid="ad-locations-modal-table">
+                        <ng-template #body let-rowData let-columns="columns">
+                            <tr>
+                                @for (col of columns; track col.field) {
+                                    <td>
+                                        @if (col.field === 'venueId') {
+                                            <span class="cell-with-copy">
+                                                <a
+                                                    class="table-cell-link"
+                                                    [routerLink]="['/venue', rowData[col.field]]">
+                                                    {{ truncate(rowData[col.field]) }}
+                                                </a>
+                                                <app-copy-button [value]="rowData[col.field]" />
+                                            </span>
+                                        } @else if (col.field === 'playCount') {
+                                            <span>{{ rowData[col.field] | number }}</span>
+                                        } @else if (col.field === 'totalDuration') {
+                                            <span>{{ formatDuration(rowData[col.field]) }}</span>
+                                        } @else if (col.field === 'latestPlay') {
+                                            <span>{{
+                                                timeDisplayService.formatTimestamp(
+                                                    rowData[col.field]
+                                                )
+                                            }}</span>
+                                        } @else {
+                                            <span>{{ rowData[col.field] }}</span>
+                                        }
+                                    </td>
+                                }
+                            </tr>
+                        </ng-template>
+                    </ntv-table>
+                </div>
+            </ntv-skeleton>
+        </app-drill-down-modal>
+    }
+
+    @if (selectedStateForVenuesModal(); as state) {
+        <app-drill-down-modal
+            [title]="state.state"
+            [subtitle]="
+                (state.totalAds | number) +
+                ' ads across ' +
+                (stateVenuesModalData().length | number) +
+                ' venues'
+            "
+            (closed)="closeStateVenuesModal()">
+            <div skeleton-content>
+                <div class="ranking-data__modal-export-row">
+                    <app-export-button
+                        [disabled]="!canExportStateVenues()"
+                        [disabledReason]="stateVenuesExportDisabledReason()"
+                        [exporting]="isExportingStateVenues()"
+                        (formatSelected)="exportStateVenues($event)" />
+                </div>
+                <ntv-table
+                    [columns]="hostRankingColumns"
+                    [data]="stateVenuesModalData()"
+                    [tableTitle]="''"
+                    [filterEnabled]="false"
+                    [showItemCount]="true"
+                    [showColumnSettings]="false"
+                    [loadingOverlayEnabled]="true"
+                    [tableHeight]="'500px'"
+                    [defaultMinWidth]="100"
+                    [hasCheckBox]="false"
+                    storageKey="state-venues-modal-columns"
+                    data-testid="state-venues-modal-table">
+                    <ng-template #body let-rowData let-columns="columns">
+                        <tr>
+                            @for (col of columns; track col.field) {
+                                <td>
+                                    @if (col.field === 'screenshotUrl') {
+                                        @if (rowData['screenshotUrl']) {
+                                            <img
+                                                [src]="rowData['screenshotUrl']"
+                                                [alt]="'Proof of play screenshot'"
+                                                class="creative-thumbnail creative-thumbnail--clickable"
+                                                (click)="
+                                                    openMedia($event, rowData['screenshotUrl'])
+                                                " />
+                                        } @else {
+                                            <span>--</span>
+                                        }
+                                    } @else if (col.field === 'venueId') {
+                                        <span class="cell-with-copy">
+                                            <a
+                                                class="table-cell-link"
+                                                [routerLink]="['/venue', rowData[col.field]]">
+                                                {{ truncate(rowData[col.field]) }}
+                                            </a>
+                                            <app-copy-button [value]="rowData[col.field]" />
+                                        </span>
+                                    } @else if (col.field === 'hostName') {
+                                        <span class="cell-with-copy">
+                                            <span>{{ truncate(rowData[col.field]) }}</span>
+                                            <app-copy-button [value]="rowData[col.field]" />
+                                        </span>
+                                    } @else if (col.field === 'totalAds') {
+                                        <button
+                                            type="button"
+                                            class="table-cell-link"
+                                            (click)="openVenueAdsModalFromStateBreakdown(rowData)">
+                                            {{ rowData[col.field] | number }}
+                                        </button>
+                                    } @else if (col.field === 'expectedRequests') {
+                                        <span>{{ rowData[col.field] | number }}</span>
+                                    } @else if (col.field === 'businessHoursSchedule') {
+                                        <span
+                                            class="schedule-cell"
+                                            (mouseenter)="onScheduleHover($event, rowData)"
+                                            (mouseleave)="onScheduleLeave()">
+                                            {{ rowData['businessHoursSchedule'] ?? '--' }}
+                                        </span>
+                                    } @else {
+                                        <span>{{ rowData[col.field] ?? '--' }}</span>
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    </ng-template>
+                </ntv-table>
+            </div>
+        </app-drill-down-modal>
+    }
+
+    @if (selectedStateForAdsModal(); as state) {
+        <app-drill-down-modal
+            [title]="state.state"
+            [subtitle]="(stateAdsModalData().length | number) + ' unique ads played'"
+            (closed)="closeStateAdsModal()">
+            <ntv-skeleton
+                variant="card"
+                width="100%"
+                height="500px"
+                [loading]="isLoadingStateAdsModal()">
+                <div skeleton-content>
+                    <ntv-table
+                        [columns]="tableColumns"
+                        [data]="stateAdsModalData()"
+                        [tableTitle]="''"
+                        [filterEnabled]="false"
+                        [showItemCount]="true"
+                        [showColumnSettings]="false"
+                        [loadingOverlayEnabled]="true"
+                        [tableHeight]="'500px'"
+                        [defaultMinWidth]="100"
+                        [hasCheckBox]="false"
+                        storageKey="state-ads-modal-columns"
+                        data-testid="state-ads-modal-table">
+                        <ng-template #body let-rowData let-columns="columns">
+                            <tr>
+                                @for (col of columns; track col.field) {
+                                    <td>
+                                        @if (col.field === 'thumbnail') {
+                                            @if (rowData['creativeType'] === 'video') {
+                                                <video
+                                                    [src]="rowData['creativeUrl']"
+                                                    muted
+                                                    playsinline
+                                                    preload="metadata"
+                                                    class="creative-thumbnail creative-thumbnail--clickable"
+                                                    (click)="
+                                                        openMedia($event, rowData['creativeUrl'])
+                                                    "></video>
+                                            } @else {
+                                                <img
+                                                    [src]="rowData['thumbnail']"
+                                                    [alt]="rowData['title']"
+                                                    class="creative-thumbnail creative-thumbnail--clickable"
+                                                    (click)="
+                                                        openMedia($event, rowData['thumbnail'])
+                                                    " />
+                                            }
+                                        } @else if (col.field === 'plays') {
+                                            <span>{{ rowData[col.field] | number }}</span>
+                                        } @else if (
+                                            col.field === 'contentId' || col.field === 'title'
+                                        ) {
+                                            <span class="cell-with-copy">
+                                                <span>{{ truncate(rowData[col.field]) }}</span>
+                                                <app-copy-button [value]="rowData[col.field]" />
+                                            </span>
+                                        } @else if (col.field === 'fetchedDate') {
+                                            <span>{{
+                                                timeDisplayService.formatTimestamp(
+                                                    rowData[col.field]
+                                                )
+                                            }}</span>
+                                        } @else {
+                                            <span>{{ rowData[col.field] }}</span>
+                                        }
+                                    </td>
+                                }
+                            </tr>
+                        </ng-template>
+                    </ntv-table>
+                </div>
+            </ntv-skeleton>
+        </app-drill-down-modal>
+    }
+
+    @if (selectedCategoryForVenuesModal(); as category) {
+        <app-drill-down-modal
+            [title]="category.category"
+            [subtitle]="
+                (category.totalAds | number) +
+                ' ads across ' +
+                (categoryVenuesModalData().length | number) +
+                ' venues'
+            "
+            (closed)="closeCategoryVenuesModal()">
+            <div skeleton-content>
+                <ntv-table
+                    [columns]="hostRankingColumns"
+                    [data]="categoryVenuesModalData()"
+                    [tableTitle]="''"
+                    [filterEnabled]="false"
+                    [showItemCount]="true"
+                    [showColumnSettings]="false"
+                    [loadingOverlayEnabled]="true"
+                    [tableHeight]="'500px'"
+                    [defaultMinWidth]="100"
+                    [hasCheckBox]="false"
+                    storageKey="category-venues-modal-columns"
+                    data-testid="category-venues-modal-table">
+                    <ng-template #body let-rowData let-columns="columns">
+                        <tr>
+                            @for (col of columns; track col.field) {
+                                <td>
+                                    @if (col.field === 'screenshotUrl') {
+                                        @if (rowData['screenshotUrl']) {
+                                            <img
+                                                [src]="rowData['screenshotUrl']"
+                                                [alt]="'Proof of play screenshot'"
+                                                class="creative-thumbnail creative-thumbnail--clickable"
+                                                (click)="
+                                                    openMedia($event, rowData['screenshotUrl'])
+                                                " />
+                                        } @else {
+                                            <span>--</span>
+                                        }
+                                    } @else if (col.field === 'venueId') {
+                                        <span class="cell-with-copy">
+                                            <a
+                                                class="table-cell-link"
+                                                [routerLink]="['/venue', rowData[col.field]]">
+                                                {{ truncate(rowData[col.field]) }}
+                                            </a>
+                                            <app-copy-button [value]="rowData[col.field]" />
+                                        </span>
+                                    } @else if (col.field === 'hostName') {
+                                        <span class="cell-with-copy">
+                                            <span>{{ truncate(rowData[col.field]) }}</span>
+                                            <app-copy-button [value]="rowData[col.field]" />
+                                        </span>
+                                    } @else if (col.field === 'totalAds') {
+                                        <button
+                                            type="button"
+                                            class="table-cell-link"
+                                            (click)="
+                                                openVenueAdsModalFromCategoryBreakdown(rowData)
+                                            ">
+                                            {{ rowData[col.field] | number }}
+                                        </button>
+                                    } @else if (col.field === 'expectedRequests') {
+                                        <span>{{ rowData[col.field] | number }}</span>
+                                    } @else if (col.field === 'businessHoursSchedule') {
+                                        <span
+                                            class="schedule-cell"
+                                            (mouseenter)="onScheduleHover($event, rowData)"
+                                            (mouseleave)="onScheduleLeave()">
+                                            {{ rowData['businessHoursSchedule'] ?? '--' }}
+                                        </span>
+                                    } @else {
+                                        <span>{{ rowData[col.field] ?? '--' }}</span>
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    </ng-template>
+                </ntv-table>
+            </div>
+        </app-drill-down-modal>
+    }
+
+    @if (selectedCategoryForAdsModal(); as category) {
+        <app-drill-down-modal
+            [title]="category.category"
+            [subtitle]="(categoryAdsModalData().length | number) + ' unique ads played'"
+            (closed)="closeCategoryAdsModal()">
+            <ntv-skeleton
+                variant="card"
+                width="100%"
+                height="500px"
+                [loading]="isLoadingCategoryAdsModal()">
+                <div skeleton-content>
+                    <ntv-table
+                        [columns]="tableColumns"
+                        [data]="categoryAdsModalData()"
+                        [tableTitle]="''"
+                        [filterEnabled]="false"
+                        [showItemCount]="true"
+                        [showColumnSettings]="false"
+                        [loadingOverlayEnabled]="true"
+                        [tableHeight]="'500px'"
+                        [defaultMinWidth]="100"
+                        [hasCheckBox]="false"
+                        storageKey="category-ads-modal-columns"
+                        data-testid="category-ads-modal-table">
+                        <ng-template #body let-rowData let-columns="columns">
+                            <tr>
+                                @for (col of columns; track col.field) {
+                                    <td>
+                                        @if (col.field === 'thumbnail') {
+                                            @if (rowData['creativeType'] === 'video') {
+                                                <video
+                                                    [src]="rowData['creativeUrl']"
+                                                    muted
+                                                    playsinline
+                                                    preload="metadata"
+                                                    class="creative-thumbnail creative-thumbnail--clickable"
+                                                    (click)="
+                                                        openMedia($event, rowData['creativeUrl'])
+                                                    "></video>
+                                            } @else {
+                                                <img
+                                                    [src]="rowData['thumbnail']"
+                                                    [alt]="rowData['title']"
+                                                    class="creative-thumbnail creative-thumbnail--clickable"
+                                                    (click)="
+                                                        openMedia($event, rowData['thumbnail'])
+                                                    " />
+                                            }
+                                        } @else if (col.field === 'plays') {
+                                            <span>{{ rowData[col.field] | number }}</span>
+                                        } @else if (
+                                            col.field === 'contentId' || col.field === 'title'
+                                        ) {
+                                            <span class="cell-with-copy">
+                                                <span>{{ truncate(rowData[col.field]) }}</span>
+                                                <app-copy-button [value]="rowData[col.field]" />
+                                            </span>
+                                        } @else if (col.field === 'fetchedDate') {
+                                            <span>{{
+                                                timeDisplayService.formatTimestamp(
+                                                    rowData[col.field]
+                                                )
+                                            }}</span>
+                                        } @else {
+                                            <span>{{ rowData[col.field] }}</span>
+                                        }
+                                    </td>
+                                }
+                            </tr>
+                        </ng-template>
+                    </ntv-table>
+                </div>
+            </ntv-skeleton>
+        </app-drill-down-modal>
+    }
+</div>

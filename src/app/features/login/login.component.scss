@@ -1,0 +1,75 @@
+:host {
+    @apply block;
+}
+
+/*
+ * A single sign-in card centered on a deep teal page with a faint marigold grid.
+ * The teal page stays in both themes (a shade darker in dark mode so the dark card
+ * still stands out); the card follows the light / dark tokens.
+ */
+.login {
+    @apply relative flex min-h-screen flex-col items-center justify-center gap-6 px-4 py-16;
+    background-color: var(--app-identity);
+    background-image:
+        linear-gradient(rgba(242, 165, 65, 0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(242, 165, 65, 0.08) 1px, transparent 1px);
+    background-size: 48px 48px;
+    background-position: center;
+
+    &__card {
+        @apply flex w-full max-w-md flex-col gap-8 bg-surface-raised p-10;
+        border-top: 6px solid #f2a541;
+        box-shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.55);
+
+        @media (max-width: 480px) {
+            @apply p-6;
+        }
+    }
+
+    &__header {
+        @apply flex flex-col items-center gap-6 text-center;
+    }
+
+    &__heading {
+        @apply flex flex-col gap-1;
+    }
+
+    &__title {
+        @apply text-2xl font-bold text-content-primary;
+    }
+
+    &__subtitle {
+        @apply text-sm text-content-muted;
+    }
+
+    &__form {
+        @apply flex flex-col gap-4;
+    }
+
+    /* Light / dark switch in the top-right corner, drawn in off-white on the teal */
+    &__theme-toggle {
+        @apply absolute right-4 top-4 flex h-10 w-10 items-center justify-center transition-colors sm:right-6 sm:top-6;
+        border: 1px solid rgba(243, 247, 246, 0.35);
+        color: #f3f7f6;
+
+        &:hover {
+            border-color: #f2a541;
+            color: #f2a541;
+        }
+
+        &:focus-visible {
+            outline: 2px solid #f2a541;
+            outline-offset: 2px;
+        }
+    }
+
+    &__foot {
+        @apply text-label tracking-[0.14em] !font-mono;
+        color: rgba(243, 247, 246, 0.6);
+    }
+}
+
+/* Dark mode: a deeper teal page so the dark card (surface-raised) stands apart */
+:host-context(.dark) .login {
+    background-color: var(--app-identity-strong);
+}

@@ -1,0 +1,41 @@
+<div class="choropleth">
+    @if (failed()) {
+        <p class="choropleth__error">The map couldn't be loaded. Refresh the page to try again.</p>
+    } @else {
+        <svg class="choropleth__map" viewBox="0 0 975 615" role="img" [attr.aria-label]="label()">
+            @for (state of states(); track state.code) {
+                <path
+                    class="choropleth__state choropleth__state--{{ state.step }}"
+                    [attr.d]="state.d"
+                    (click)="onSelect(state.code)">
+                    <title>{{ state.tooltip }}</title>
+                </path>
+            }
+            @if (selectedPath(); as d) {
+                <path class="choropleth__selected" [attr.d]="d" />
+            }
+            @for (state of states(); track state.code) {
+                @if (state.showLabel) {
+                    <text
+                        class="choropleth__label"
+                        [class.choropleth__label--on-dark]="state.step >= 4"
+                        [attr.x]="state.x"
+                        [attr.y]="state.y">
+                        {{ state.code }}
+                    </text>
+                }
+            }
+        </svg>
+    }
+
+    <ul class="choropleth__legend" aria-label="Legend">
+        @for (item of legend(); track item.step) {
+            <li class="choropleth__legend-item">
+                <span
+                    class="choropleth__swatch choropleth__state--{{ item.step }}"
+                    aria-hidden="true"></span>
+                {{ item.label }}
+            </li>
+        }
+    </ul>
+</div>

@@ -1,0 +1,341 @@
+<div class="page map-view">
+    <app-page-header eyebrow="Locations" title="Map View" [subtitle]="subtitle()">
+        <!-- The total, then the range controls (same range as the Dashboard and Ranking
+             Data, Yesterday by default) -->
+        <div class="map-view__header-actions">
+            <p class="map-view__ads-total">
+                Nationwide Ads Received Total: {{ programmaticAdsTotal() | number }}
+            </p>
+            <app-range-controls [disabled]="isLoading()" [allowAllTime]="true" />
+        </div>
+    </app-page-header>
+
+    <app-range-notice />
+
+    <div class="map-view__body">
+        <div class="map-view__map-column">
+            <ntv-card class="map-view__map-card" [config]="cardConfig">
+                <div class="map-view__map-frame">
+                    <app-us-states-map
+                        [data]="mapData()"
+                        [loading]="isLoading()"
+                        [selectedCode]="selectedState()"
+                        (stateClicked)="onStateClicked($event)" />
+
+                    <!-- Floating over the map's upper-right corner instead of its own
+                         header row, so the map keeps the full card to itself. -->
+                    <div class="map-view__map-badge">
+                        @if (selectedState(); as code) {
+                            <span class="map-view__map-badge-pill">{{ code }}</span>
+                        } @else {
+                            <span>No state selected</span>
+                        }
+                        @if (selectedStateEntry(); as entry) {
+                            <span class="map-view__map-badge-count">
+                                Venues: {{ entry.venueCount }} &nbsp;/&nbsp; Received by State:
+                                {{ entry.totalAds | number }}
+                            </span>
+                        }
+                    </div>
+                </div>
+            </ntv-card>
+        </div>
+
+        <div class="map-view__panel">
+            <app-summary-card title="Daily Ads Received &amp; Unique Venues" icon="chart-column">
+                <app-daily-ads-bar-chart
+                    [data]="dailyAdsSummary()"
+                    [loading]="isLoadingDailyAdsSummary()" />
+            </app-summary-card>
+        </div>
+    </div>
+
+    <!-- Before a state is picked: one self-contained, non-switching card exploring the
+         nationwide States → Ads → Venues breakdown. Picking a row here is local-only
+         (doesn't touch the map or trigger a fetch) - it's just a way to look around
+         before committing to a state by clicking the map itself. -->
+    <div class="map-view__drilldown">
+        @if (!selectedState()) {
+            <app-summary-card
+                title="Nationwide States Breakdown"
+                icon="map-location-dot"
+                hint="Pick a state to see its ads, then an ad to see its venues. Click a state on the map to drill into it.">
+                @if (adSharesInState(); as data) {
+                    <div class="map-view__thirds">
+                        <div class="map-view__half">
+                            <h3 class="map-view__split-title">All states received</h3>
+                            <app-share-list
+                                [items]="stateShareItems()"
+                                [total]="programmaticAdsTotal()"
+                                unit="received"
+                                [limit]="topLimit"
+                                [selectable]="true"
+                                [selectedId]="selectedNationwideState()?.id ?? null"
+                                (selectItem)="selectedNationwideStateId.set($event)"
+                                emptyText="No states received anything in this range." />
+                        </div>
+
+                        @if (selectedNationwideState(); as state) {
+                            <section class="map-view__split">
+                                <h3 class="map-view__split-title">
+                                    Ads in
+                                    <span class="map-view__split-name">{{ state.name }}</span>
+                                </h3>
+                                <app-share-list
+                                    [items]="nationwideStateAdItems()"
+                                    [total]="state.value"
+                                    unit="received"
+                                    [limit]="topLimit"
+                                    [showThumbnails]="true"
+                                    [selectable]="true"
+                                    [selectedId]="selectedNationwideAd()?.id ?? null"
+                                    (selectItem)="selectedNationwideAdId.set($event)"
+                                    emptyText="No ads received here." />
+                            </section>
+                        }
+
+                        @if (selectedNationwideAd(); as ad) {
+                            <section class="map-view__split">
+                                <h3 class="map-view__split-title">
+                                    Venues for
+                                    <span class="map-view__split-name" [title]="ad.name">{{
+                                        ad.name
+                                    }}</span>
+                                </h3>
+                                <app-share-list
+                                    [items]="nationwideStateAdVenueItems()"
+                                    [total]="ad.value"
+                                    unit="received"
+                                    [limit]="topLimit"
+                                    emptyText="No venues for this ad here." />
+                            </section>
+                        }
+                    </div>
+                } @else if (hasAdSharesError()) {
+                    <app-section-error
+                        message="Failed to load the states."
+                        (retry)="reloadAdShares()" />
+                } @else {
+                    <ntv-skeleton variant="custom" width="100%" height="320px" />
+                }
+            </app-summary-card>
+        }
+
+        <!-- Once a state is picked: Category/Venue/Ads each have a drill-down, but only
+             one shows at a time - switching (the card-action slot, where "View all" would
+             go) instead of stacking all three means never having to scroll past two you
+             don't want to reach the one you do. All three are scoped to the selected
+             state's venues. -->
+        @if (activeBreakdown() === 'venues' && selectedState()) {
+            <app-summary-card
+                [title]="'Venues in ' + selectedState()"
+                icon="location-dot"
+                hint="Pick a venue to see its ads."
+                [class.map-view__loading]="isLoadingAdShares() && adSharesInState()">
+                <app-sort-control
+                    card-action
+                    class="map-view__breakdown-switcher"
+                    label="Show breakdown"
+                    icon="arrow-right-arrow-left"
+                    [options]="breakdownViewOptions"
+                    [value]="activeBreakdown()"
+                    (valueChange)="activeBreakdown.set($event)" />
+                @if (adSharesInState(); as data) {
+                    <div class="map-view__halves">
+                        <div class="map-view__half">
+                            <h3 class="map-view__split-title">
+                                Venues in
+                                <span class="map-view__split-name">{{ selectedState() }}</span>
+                            </h3>
+                            <app-share-list
+                                [items]="venueShareItems()"
+                                [total]="data.received"
+                                unit="received"
+                                [limit]="topLimit"
+                                [selectable]="true"
+                                [selectedId]="selectedVenue()?.id ?? null"
+                                (selectItem)="selectedVenueId.set($event)"
+                                emptyText="No venues received here." />
+                        </div>
+
+                        @if (selectedVenue(); as venue) {
+                            <section class="map-view__split">
+                                <h3 class="map-view__split-title">
+                                    Ads at
+                                    <span class="map-view__split-name" [title]="venue.name">{{
+                                        venue.name
+                                    }}</span>
+                                </h3>
+                                <app-share-list
+                                    [items]="selectedVenueAdItems()"
+                                    [total]="venue.value"
+                                    unit="received"
+                                    [limit]="topLimit"
+                                    [showThumbnails]="true"
+                                    emptyText="No ads for this venue here." />
+                            </section>
+                        }
+                    </div>
+                } @else if (hasAdSharesError()) {
+                    <app-section-error
+                        message="Failed to load the venues."
+                        (retry)="reloadAdShares()" />
+                } @else {
+                    <ntv-skeleton variant="custom" width="100%" height="320px" />
+                }
+            </app-summary-card>
+        }
+
+        @if (activeBreakdown() === 'categories' && selectedState()) {
+            <app-summary-card
+                [title]="'Categories in ' + selectedState()"
+                icon="tags"
+                hint="Pick a category to see its venues, then a venue to see its ads."
+                [class.map-view__loading]="isLoadingAdShares() && adSharesInState()">
+                <app-sort-control
+                    card-action
+                    class="map-view__breakdown-switcher"
+                    label="Show breakdown"
+                    icon="arrow-right-arrow-left"
+                    [options]="breakdownViewOptions"
+                    [value]="activeBreakdown()"
+                    (valueChange)="activeBreakdown.set($event)" />
+                @if (adSharesInState(); as data) {
+                    <div class="map-view__thirds">
+                        <div class="map-view__half">
+                            <h3 class="map-view__split-title">All categories received</h3>
+                            <app-share-list
+                                [items]="categoryShareItems()"
+                                [total]="data.received"
+                                unit="received"
+                                [limit]="topLimit"
+                                [selectable]="true"
+                                [selectedId]="selectedMapCategory()?.id ?? null"
+                                (selectItem)="selectedMapCategoryId.set($event)"
+                                emptyText="No categories received here." />
+                        </div>
+
+                        @if (selectedMapCategory(); as category) {
+                            <section class="map-view__split">
+                                <h3 class="map-view__split-title">
+                                    Venues in
+                                    <span class="map-view__split-name">{{ category.name }}</span>
+                                </h3>
+                                <app-share-list
+                                    [items]="categoryVenueItems()"
+                                    [total]="category.value"
+                                    unit="received"
+                                    [limit]="topLimit"
+                                    [selectable]="true"
+                                    [selectedId]="selectedMapVenue()?.id ?? null"
+                                    (selectItem)="selectedMapVenueId.set($event)"
+                                    emptyText="No venues for this category here." />
+                            </section>
+                        }
+
+                        @if (selectedMapVenue(); as venue) {
+                            <section class="map-view__split">
+                                <h3 class="map-view__split-title">
+                                    Ads at
+                                    <span class="map-view__split-name" [title]="venue.name">{{
+                                        venue.name
+                                    }}</span>
+                                </h3>
+                                <app-share-list
+                                    [items]="venueAdItems()"
+                                    [total]="venue.value"
+                                    unit="received"
+                                    [limit]="topLimit"
+                                    [showThumbnails]="true"
+                                    emptyText="No ads for this venue here." />
+                            </section>
+                        }
+                    </div>
+                } @else if (hasAdSharesError()) {
+                    <app-section-error
+                        message="Failed to load the categories."
+                        (retry)="reloadAdShares()" />
+                } @else {
+                    <ntv-skeleton variant="custom" width="100%" height="320px" />
+                }
+            </app-summary-card>
+        }
+
+        @if (activeBreakdown() === 'ads' && selectedState()) {
+            <app-summary-card
+                [title]="'Ads in ' + selectedState()"
+                icon="rectangle-ad"
+                hint="Pick an ad to see its categories, then a category to see its venues."
+                [class.map-view__loading]="isLoadingAdShares() && adSharesInState()">
+                <app-sort-control
+                    card-action
+                    class="map-view__breakdown-switcher"
+                    label="Show breakdown"
+                    icon="arrow-right-arrow-left"
+                    [options]="breakdownViewOptions"
+                    [value]="activeBreakdown()"
+                    (valueChange)="activeBreakdown.set($event)" />
+                @if (adSharesInState(); as data) {
+                    <div class="map-view__thirds">
+                        <div class="map-view__half">
+                            <h3 class="map-view__split-title">All ads received</h3>
+                            <app-share-list
+                                [items]="adShareItems()"
+                                [total]="data.received"
+                                unit="received"
+                                [limit]="topLimit"
+                                [showThumbnails]="true"
+                                [selectable]="true"
+                                [selectedId]="selectedAdRowId()"
+                                (selectItem)="selectedAdId.set($event)"
+                                emptyText="No ads received here." />
+                        </div>
+
+                        @if (selectedAd(); as ad) {
+                            <section class="map-view__split">
+                                <h3 class="map-view__split-title">
+                                    Categories for
+                                    <span class="map-view__split-name" [title]="ad.title">{{
+                                        shortTitle(ad.title)
+                                    }}</span>
+                                </h3>
+                                <app-share-list
+                                    [items]="adCategoryItems()"
+                                    [total]="ad.received"
+                                    unit="received"
+                                    [limit]="topLimit"
+                                    [selectable]="true"
+                                    [selectedId]="selectedCategory()?.id ?? null"
+                                    (selectItem)="selectedCategoryId.set($event)"
+                                    emptyText="No categories for this ad." />
+                            </section>
+
+                            @if (selectedCategory(); as category) {
+                                <section class="map-view__split">
+                                    <h3 class="map-view__split-title">
+                                        Venues in
+                                        <span class="map-view__split-name">{{
+                                            category.name
+                                        }}</span>
+                                    </h3>
+                                    <app-share-list
+                                        [items]="adCategoryVenueItems()"
+                                        [total]="category.value"
+                                        unit="received"
+                                        [limit]="topLimit"
+                                        emptyText="No venues for this category here." />
+                                </section>
+                            }
+                        }
+                    </div>
+                } @else if (hasAdSharesError()) {
+                    <app-section-error
+                        message="Failed to load the ads."
+                        (retry)="reloadAdShares()" />
+                } @else {
+                    <ntv-skeleton variant="custom" width="100%" height="320px" />
+                }
+            </app-summary-card>
+        }
+    </div>
+</div>
